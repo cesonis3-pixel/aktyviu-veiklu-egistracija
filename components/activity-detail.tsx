@@ -1,48 +1,25 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { Activity } from "@/lib/demo-activities";
 import { Icon } from "./icon";
 import { useDemoReservations } from "./demo-reservations";
 
 export function ActivityDetail({ activity }: { activity: Activity }) {
-  const { signedIn, reserved } = useDemoReservations();
-  const router = useRouter();
+  const { signedIn, reserved, toggle } = useDemoReservations();
   const [notice, setNotice] = useState("");
-  const [databaseReserved, setDatabaseReserved] = useState(false);
-  const [pending, setPending] = useState(false);
-  const isReserved = signedIn ? databaseReserved : reserved.includes(activity.id);
+  const isReserved = reserved.includes(activity.id);
   const available = activity.available - (isReserved ? 1 : 0);
-  useEffect(() => {
-    if (!signedIn) return;
-    fetch(`/api/reservations?activityId=${encodeURIComponent(activity.id)}`)
-      .then((response) => response.json())
-      .then((result: { reserved?: boolean }) =>
-        setDatabaseReserved(Boolean(result.reserved)),
-      )
-      .catch(() => setNotice("Nepavyko patikrinti rezervacijos būsenos."));
-  }, [activity.id, signedIn]);
-
-  async function reserve() {
+  function reserve() {
     if (!isReserved && available <= 0) return;
     if (!signedIn) return;
-    setPending(true);
-    const response = await fetch("/api/reservations", {
-      method: isReserved ? "DELETE" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activityId: activity.id }),
-    });
-    const result = (await response.json()) as { error?: string };
-    setPending(false);
-    if (!response.ok) {
-      setNotice(result.error ?? "Nepavyko atnaujinti rezervacijos.");
-      return;
-    }
-    setDatabaseReserved(!isReserved);
-    setNotice(isReserved ? "Rezervacija atšaukta." : "Vieta rezervuota.");
-    router.refresh();
+    toggle(activity.id);
+    setNotice(
+      isReserved
+        ? "Demonstracinė rezervacija atšaukta. Vieta vėl laisva."
+        : "Vieta pažymėta demonstracijoje. Tikra rezervacija nesukurta.",
+    );
   }
   return (
     <article className="detail-card">
@@ -105,7 +82,6 @@ export function ActivityDetail({ activity }: { activity: Activity }) {
               type="button"
               className="button button-outline"
               onClick={reserve}
-              disabled={pending}
             >
               Atšaukti rezervaciją
             </button>
@@ -114,7 +90,7 @@ export function ActivityDetail({ activity }: { activity: Activity }) {
               Pilna
             </button>
           ) : signedIn ? (
-            <button type="button" onClick={reserve} disabled={pending}>
+            <button type="button" onClick={reserve}>
               Registruoti vietą <Icon name="arrow" />
             </button>
           ) : (
