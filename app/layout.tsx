@@ -6,6 +6,8 @@ import { Icon } from "@/components/icon";
 import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
+const COPYRIGHT_YEAR = "2026";
+
 export const metadata: Metadata = {
   title: {
     default: "Baltic Winter – žiemos nuotykiai",
@@ -41,7 +43,7 @@ export default async function RootLayout({
               Baltic Winter
             </Link>
             <p>Žiemos nuotykiai prasideda čia.</p>
-            <span>© {new Date().getFullYear()} Baltic Winter</span>
+            <span>© {COPYRIGHT_YEAR} Baltic Winter</span>
           </div>
         </footer>
       </body>
