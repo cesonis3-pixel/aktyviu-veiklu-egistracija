@@ -1,30 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-
-function errorMessage(code?: string) {
-  switch (code) {
-    case "invalid_credentials":
-      return "Neteisingas el. paštas arba slaptažodis.";
-    case "email_not_confirmed":
-      return "Prieš prisijungdami patvirtinkite savo el. paštą.";
-    case "weak_password":
-      return "Slaptažodis per silpnas. Pasirinkite ilgesnį ir sudėtingesnį slaptažodį.";
-    case "user_already_exists":
-      return "Nepavyko užregistruoti paskyros. Pabandykite prisijungti.";
-    case "over_request_rate_limit":
-    case "over_email_send_rate_limit":
-      return "Per daug bandymų. Palaukite ir pabandykite dar kartą.";
-    default:
-      return "Nepavyko atlikti veiksmo. Patikrinkite duomenis ir bandykite dar kartą.";
-  }
-}
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
-  const router = useRouter();
+  const inFlight = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -33,7 +15,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     const form = event.currentTarget;
     const data = new FormData(form);
     const email = String(data.get("email") ?? "").trim();
@@ -44,26 +27,52 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
     try {
       const supabase = createClient();
-      const result = register
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-          })
-        : await supabase.auth.signInWithPassword({ email, password });
-
-      if (result.error) {
-        setError(errorMessage(result.error.code));
-      } else if (register) {
+      if (register) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: new URL("/auth/callback", window.location.origin)
+              .href,
+          },
+        });
+        if (error) {
+          setError(getAuthErrorMessage(error));
+          return;
+        }
+        // Supabase can obscure an existing account instead of returning an error.
+        if (data.user?.identities?.length === 0) {
+          setError(
+            "Paskyra šiuo el. paštu gali jau egzistuoti. Jau turite paskyrą? Prisijunkite.",
+          );
+          return;
+        }
         form.reset();
         setSuccess(true);
       } else {
-        router.replace("/");
-        router.refresh();
+        // Password login never registers a user or sends confirmation emails.
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          setError(getAuthErrorMessage(error));
+          return;
+        }
+        if (!data.session) {
+          setError(
+            "Supabase negrąžino prisijungimo sesijos. Pabandykite prisijungti dar kartą.",
+          );
+          return;
+        }
+        // Cookies are saved before the promise resolves. A fresh document
+        // avoids reusing an anonymous prefetched layout after signing in.
+        window.location.replace(new URL("/", window.location.origin).href);
       }
-    } catch {
-      setError("Nepavyko susisiekti su paslauga. Pabandykite dar kartą.");
+    } catch (error) {
+      setError(getAuthErrorMessage(error));
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }
@@ -73,16 +82,48 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <h1 id="auth-title">{title}</h1>
       <form onSubmit={handleSubmit} className="auth-form" aria-busy={pending}>
         <label htmlFor="email">El. paštas</label>
-        <input id="email" name="email" type="email" autoComplete="email" required disabled={pending} />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          disabled={pending}
+        />
         <label htmlFor="password">Slaptažodis</label>
-        <input id="password" name="password" type="password" autoComplete={register ? "new-password" : "current-password"} minLength={register ? 6 : undefined} required disabled={pending} aria-describedby={register ? "password-hint" : undefined} />
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete={register ? "new-password" : "current-password"}
+          minLength={register ? 6 : undefined}
+          required
+          disabled={pending}
+          aria-describedby={register ? "password-hint" : undefined}
+        />
         {register && <small id="password-hint">Bent 6 simboliai.</small>}
-        <button type="submit" disabled={pending}>{pending ? "Palaukite…" : title}</button>
-        {error && <p className="message error" role="alert">{error}</p>}
-        {success && <p className="message success" role="status">Registracija sėkminga. Gali reikėti patvirtinti el. paštą – patikrinkite savo pašto dėžutę ir sekite laiške pateiktą nuorodą. Tada galėsite prisijungti.</p>}
+        <button type="submit" disabled={pending}>
+          {pending ? "Palaukite…" : title}
+        </button>
+        {error && (
+          <p className="message error" role="alert">
+            {error}
+          </p>
+        )}
+        {success && (
+          <p className="message success" role="status">
+            Registracija sėkminga. Gali reikėti patvirtinti el. paštą –
+            patikrinkite savo pašto dėžutę ir sekite laiške pateiktą nuorodą.
+            Tada galėsite prisijungti.
+          </p>
+        )}
       </form>
       <nav className="auth-links" aria-label="Paskyros nuorodos">
-        <Link href={register ? "/login" : "/register"}>{register ? "Jau turite paskyrą? Prisijunkite" : "Neturite paskyros? Registruokitės"}</Link>
+        <Link href={register ? "/login" : "/register"}>
+          {register
+            ? "Jau turite paskyrą? Prisijunkite"
+            : "Neturite paskyros? Registruokitės"}
+        </Link>
         <Link href="/">Grįžti į pagrindinį</Link>
       </nav>
     </section>
