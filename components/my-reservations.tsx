@@ -1,12 +1,29 @@
 "use client";
+"use client";
+
 import Link from "next/link";
-import { activities } from "@/lib/demo-activities";
+import { useRouter } from "next/navigation";
+import type { Activity } from "@/lib/demo-activities";
 import { ActivityCard } from "./activity-card";
-import { useDemoReservations } from "./demo-reservations";
 import { Icon } from "./icon";
-export function MyReservations() {
-  const { signedIn, reserved } = useDemoReservations();
-  const mine = activities.filter((activity) => reserved.includes(activity.id));
+export function MyReservations({
+  signedIn,
+  error,
+  items,
+}: {
+  signedIn: boolean;
+  error?: string;
+  items: { reservation: { activity_id: string; status: string }; activity: Activity }[];
+}) {
+  const router = useRouter();
+  async function cancel(activityId: string) {
+    await fetch("/api/reservations", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activityId }),
+    });
+    router.refresh();
+  }
   if (!signedIn)
     return (
       <div className="empty-state">
@@ -20,14 +37,21 @@ export function MyReservations() {
     );
   return (
     <>
-      <p className="demo-note">
-        Čia rodomi tik demonstraciniai pasirinkimai. Perkrovus puslapį jie
-        išnyksta.
-      </p>
-      {mine.length ? (
+      {error ? (
+        <div className="empty-state">
+          <Icon name="ticket" />
+          <h2>Nepavyko gauti rezervacijų</h2>
+          <p>{error}</p>
+        </div>
+      ) : items.length ? (
         <div className="activity-grid">
-          {mine.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
+          {items.map(({ activity }) => (
+            <div key={activity.id}>
+              <ActivityCard activity={activity} />
+              <button type="button" onClick={() => cancel(activity.id)}>
+                Atšaukti rezervaciją
+              </button>
+            </div>
           ))}
         </div>
       ) : (
