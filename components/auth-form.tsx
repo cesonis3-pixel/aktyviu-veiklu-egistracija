@@ -42,9 +42,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         }
         // Supabase can obscure an existing account instead of returning an error.
         if (data.user?.identities?.length === 0) {
-          setError(
-            "Paskyra šiuo el. paštu gali jau egzistuoti. Jau turite paskyrą? Prisijunkite.",
-          );
+          setError("Ši paskyra jau egzistuoja. Prisijunkite.");
           return;
         }
         form.reset();

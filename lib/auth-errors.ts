@@ -34,10 +34,10 @@ export function getAuthErrorMessage(error: unknown): string {
     code === "over_email_send_rate_limit" ||
     message.includes("email rate limit")
   ) {
-    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Palaukite ir bandykite vėliau.";
+    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Jei paskyra jau sukurta, prisijunkite. Jei ne – bandykite vėliau.";
   }
   if (code === "over_request_rate_limit" || failure.status === 429) {
-    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Palaukite ir bandykite vėliau.";
+    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Jei paskyra jau sukurta, prisijunkite. Jei ne – bandykite vėliau.";
   }
   if (
     code === "email_address_not_authorized" ||
