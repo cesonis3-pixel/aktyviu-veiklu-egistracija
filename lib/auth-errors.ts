@@ -28,16 +28,16 @@ export function getAuthErrorMessage(error: unknown): string {
     code === "email_exists" ||
     message.includes("already registered")
   ) {
-    return "Vartotojas šiuo el. paštu jau egzistuoja. Jau turite paskyrą? Prisijunkite.";
+    return "Ši paskyra jau egzistuoja. Prisijunkite.";
   }
   if (
     code === "over_email_send_rate_limit" ||
     message.includes("email rate limit")
   ) {
-    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Palaukite prieš bandydami registruotis dar kartą. Jei jau turite patvirtintą paskyrą, prisijunkite.";
+    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Palaukite ir bandykite vėliau.";
   }
   if (code === "over_request_rate_limit" || failure.status === 429) {
-    return "Per daug bandymų. Palaukite ir pabandykite dar kartą.";
+    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Palaukite ir bandykite vėliau.";
   }
   if (
     code === "email_address_not_authorized" ||
@@ -65,7 +65,7 @@ export function getAuthErrorMessage(error: unknown): string {
     failure.name === "TypeError" ||
     failure.status === 0
   ) {
-    return "Nepavyko susisiekti su Supabase. Patikrinkite interneto ryšį ir bandykite dar kartą.";
+    return "Nepavyko susisiekti su serveriu. Bandykite dar kartą.";
   }
   return "Nepavyko atlikti Supabase autentifikacijos veiksmo. Pabandykite dar kartą arba kreipkitės į projekto administratorių.";
 }

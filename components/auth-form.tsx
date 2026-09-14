@@ -103,7 +103,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         />
         {register && <small id="password-hint">Bent 6 simboliai.</small>}
         <button type="submit" disabled={pending}>
-          {pending ? "Palaukite…" : title}
+          {pending ? (register ? "Registruojama..." : "Jungiamasi...") : title}
         </button>
         {error && (
           <p className="message error" role="alert">
