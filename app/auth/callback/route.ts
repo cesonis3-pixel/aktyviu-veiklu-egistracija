@@ -1,14 +1,33 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createRouteClient } from "@/lib/supabase/route";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(new URL("/", request.url));
+  const response = NextResponse.redirect(new URL("/", request.url));
+  response.headers.set("Cache-Control", "private, no-store");
+  let reason = "confirmation";
+  if (code && !request.nextUrl.searchParams.has("error")) {
+    try {
+      const supabase = createRouteClient(request, response);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error && data.session) return response;
+      if (
+        error?.code === "flow_state_not_found" ||
+        error?.code === "bad_code_verifier" ||
+        error?.code === "pkce_code_verifier_not_found"
+      ) {
+        reason = "confirmation_browser";
+      } else if (error?.name === "AuthRetryableFetchError") {
+        reason = "confirmation_network";
+      }
+    } catch {
+      reason = "confirmation_network";
     }
   }
-  return NextResponse.redirect(new URL("/login?error=confirmation", request.url));
+  // Keep any cookie cleanup and cache headers produced during the exchange.
+  response.headers.set(
+    "Location",
+    new URL(`/login?error=${reason}`, request.url).href,
+  );
+  return response;
 }
