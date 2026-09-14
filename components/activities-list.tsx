@@ -1,15 +1,14 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { activities } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/demo-activities";
 import { ActivityCard } from "./activity-card";
 import { Icon } from "./icon";
 
-export function ActivitiesList() {
+export function ActivitiesList({ activities }: { activities: Activity[] }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("");
+  const filter = query.trim().toLocaleLowerCase("lt");
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFilter(query.trim().toLocaleLowerCase("lt"));
   }
   const filtered = activities.filter((activity) =>
     `${activity.title} ${activity.category} ${activity.location} ${activity.organizer}`
@@ -58,7 +57,6 @@ export function ActivitiesList() {
             className="button button-outline"
             onClick={() => {
               setQuery("");
-              setFilter("");
             }}
           >
             Rodyti visas veiklas
