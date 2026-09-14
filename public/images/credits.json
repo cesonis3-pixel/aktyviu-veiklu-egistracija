@@ -1,0 +1,11 @@
+{
+  "source": "Unsplash",
+  "license": "https://unsplash.com/license",
+  "note": "Illustrative photographs for demonstration activities; not photographs of the listed locations.",
+  "images": {
+    "winter-mountains.jpg": "https://images.unsplash.com/photo-1494105254923-392470cb7bb1?auto=format&fit=crop&w=1920&q=85",
+    "winter-forest.jpg": "https://images.unsplash.com/photo-1613851472545-ad13f3631e3d?auto=format&fit=crop&w=1000&q=85",
+    "winter-adventure.jpg": "https://images.unsplash.com/photo-1578945887104-34439d7132a9?auto=format&fit=crop&w=1000&q=85",
+    "ski-tour.jpg": "https://images.unsplash.com/photo-1641811145041-da63e6775b2c?auto=format&fit=crop&w=1000&q=85"
+  }
+}
