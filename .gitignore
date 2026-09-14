@@ -1,0 +1,36 @@
+# Dependencies
+/node_modules/
+/.pnp
+.pnp.*
+
+# Next.js and build output
+/.next/
+/out/
+/build/
+/dist/
+/coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment variables (keep the public template)
+.env*
+!.env.example
+
+# Local deployment settings and logs
+/.vercel/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local editor and operating system files
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.pem
+*.swp
+*.swo
+*~

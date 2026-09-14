@@ -1,0 +1,37 @@
+:root {
+  color-scheme: light;
+  background: #f5f8f6;
+  color: #173b2b;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.15;
+}
+
+p {
+  margin: 0;
+  color: #486054;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
