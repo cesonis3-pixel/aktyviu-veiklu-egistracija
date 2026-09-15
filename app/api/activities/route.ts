@@ -39,8 +39,20 @@ export async function POST(request: Request) {
     p_capacity: capacity,
   });
   if (error) {
+    console.error("[activities] create_activity RPC failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      userId: user.id,
+    });
     return NextResponse.json(
-      { error: "Nepavyko sukurti veiklos. Patikrinkite duomenis ir bandykite dar kartą." },
+      {
+        error: error.message,
+        code: error.code,
+        details: error.details || undefined,
+        hint: error.hint || undefined,
+      },
       { status: 400 },
     );
   }
