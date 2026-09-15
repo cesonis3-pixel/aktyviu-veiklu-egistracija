@@ -38,6 +38,31 @@ const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "
     "organizer": "Povilas",
     "image": "/images/winter-adventure.jpg",
     "imageAlt": "Žiemos nuotykių dalyviai keliauja per snieguotą mišką"
+  },
+  "Keturračiai sniege": {
+    "category": "Keturračiai",
+    "image": "/images/winter-atv.png",
+    "imageAlt": "Keturračiai su vairuotojais snieguotame miško take"
+  },
+  "Lauko treniruotė": {
+    "category": "Lauko treniruotės",
+    "image": "/images/winter-fitness.png",
+    "imageAlt": "Dalyviai atlieka mankštos pratimus snieguotame parke"
+  }
+};
+
+const imageByTitle: Partial<Record<string, Pick<Activity, "image" | "imageAlt">>> = {
+  "Snieglenčių išvyka": {
+    image: "/images/winter-snowboard.png",
+    imageAlt: "Snieglentininkas leidžiasi snieguotu šlaitu",
+  },
+  "Rogutės": {
+    image: "/images/winter-sledding.png",
+    imageAlt: "Dalyviai leidžiasi rogutėmis nuo snieguoto kalnelio",
+  },
+  "Čiuožimas": {
+    image: "/images/winter-skating.png",
+    imageAlt: "Dalyviai su pačiūžomis žiemos lauko čiuožykloje",
   }
 };
 
@@ -87,11 +112,12 @@ export function toActivity(row: ActivityRow): Activity {
     capacity: row.capacity,
     available: row.available,
     status: row.status,
+    description: row.description ?? "",
     image: "/images/winter-mountains.jpg",
     imageAlt: "Snieguotas žiemos kraštovaizdis",
-    description: row.description ?? "",
     ...thematicPresentation(row.title),
     ...presentation[row.title],
+    ...(imageByTitle[row.title] ?? {}),
     organizer: organizerName,
     organizer_name: organizerName,
   };
