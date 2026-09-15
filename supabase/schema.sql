@@ -138,7 +138,7 @@ begin
 	from public.reservations
 	where activity_id = p_activity_id and status = 'active';
 	if active_reservations >= activity_row.capacity then
-		raise exception 'Laisvų vietų nebėra.' using errcode = 'P0005';
+		raise exception 'Vietų nebeliko.' using errcode = 'P0005';
 	end if;
 
 	if reservation_row.id is null then
@@ -182,5 +182,7 @@ end;
 $$;
 
 grant execute on function public.get_public_activities() to anon, authenticated;
+revoke execute on function public.reserve_activity(uuid) from public, anon;
 grant execute on function public.reserve_activity(uuid) to authenticated;
+revoke execute on function public.cancel_reservation(uuid) from public, anon;
 grant execute on function public.cancel_reservation(uuid) to authenticated;

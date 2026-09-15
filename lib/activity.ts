@@ -9,6 +9,7 @@ export type Activity = {
   organizer: string;
   capacity: number;
   available: number;
+  status?: "active" | "cancelled";
   image: string;
   imageAlt: string;
   description: string;
