@@ -42,8 +42,17 @@ export default async function MyActivitiesPage() {
   return (
     <main id="main-content" className="container page-section">
       <div className="page-heading">
-        <h1>Mano veiklos</h1>
-        <p>Kurk savo nuotykius ir suburk bendraminčius.</p>
+        <div className="section-heading">
+          <div>
+            <h1>Mano veiklos</h1>
+            <p>Kurk savo nuotykius ir suburk bendraminčius.</p>
+          </div>
+          {user && (
+            <Link className="button" href="/my-activities/new">
+              Sukurti veiklą
+            </Link>
+          )}
+        </div>
       </div>
       {!user ? (
         <div className="empty-state">
