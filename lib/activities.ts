@@ -1,4 +1,4 @@
-import type { Activity } from "./demo-activities";
+import type { Activity } from "./activity";
 import { createClient } from "./supabase/server";
 
 type ActivityRow = {
@@ -12,7 +12,29 @@ type ActivityRow = {
   available: number;
 };
 
+const presentation: Partial<Record<string, Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>> = {
+  "Slidinėjimo išvyka": {
+    "category": "Slidinėjimas",
+    "organizer": "Povilas",
+    "image": "/images/ski-tour.jpg",
+    "imageAlt": "Slidininkų grupė snieguotame miške"
+  },
+  "Žygis gamtoje": {
+    "category": "Žygiai",
+    "organizer": "Jurgita",
+    "image": "/images/winter-forest.jpg",
+    "imageAlt": "Snieguotas takas tarp žiemos miško medžių"
+  },
+  "Žiemos aktyvi veikla": {
+    "category": "Aktyvus laisvalaikis",
+    "organizer": "Povilas",
+    "image": "/images/winter-adventure.jpg",
+    "imageAlt": "Žiemos nuotykių dalyviai keliauja per snieguotą mišką"
+  }
+};
+
 export function toActivity(row: ActivityRow): Activity {
+  const date = new Date(row.starts_at);
   return {
     id: row.id,
     title: row.title,
@@ -20,9 +42,10 @@ export function toActivity(row: ActivityRow): Activity {
     date: row.starts_at,
     dateLabel: new Intl.DateTimeFormat("lt-LT", {
       dateStyle: "long",
-      timeStyle: "short",
       timeZone: "Europe/Vilnius",
-    }).format(new Date(row.starts_at)),
+    }).format(date) + " · " + new Intl.DateTimeFormat("lt-LT", {
+      hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vilnius",
+    }).format(date),
     location: row.location,
     organizer: "Organizatorius",
     capacity: row.capacity,
@@ -30,6 +53,7 @@ export function toActivity(row: ActivityRow): Activity {
     image: "/images/winter-adventure.jpg",
     imageAlt: "Žiemos aktyvios veiklos dalyviai",
     description: row.description ?? "",
+    ...presentation[row.title],
   };
 }
 
@@ -37,5 +61,15 @@ export async function getActivities() {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_public_activities");
   if (error) throw error;
-  return (data as ActivityRow[]).map(toActivity);
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: reservations, error: reservationError } = user
+    ? await supabase.from("reservations").select("activity_id")
+        .eq("user_id", user.id).eq("status", "active")
+    : { data: [], error: null };
+  if (reservationError) throw reservationError;
+  const reserved = new Set((reservations ?? []).map(row => row.activity_id));
+  return (data as ActivityRow[]).map(row => ({
+    ...toActivity(row),
+    isReserved: reserved.has(row.id),
+  }));
 }

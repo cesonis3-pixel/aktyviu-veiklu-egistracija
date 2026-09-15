@@ -1,14 +1,12 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import type { Activity } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
-import { useDemoReservations } from "./demo-reservations";
 
 export function ActivityCard({ activity }: { activity: Activity }) {
-  const { reserved } = useDemoReservations();
-  const isReserved = reserved.includes(activity.id);
-  const available = activity.available - (isReserved ? 1 : 0);
+  const isReserved = activity.isReserved;
+  const available = activity.available;
   const href = `/activities/${activity.id}`;
   return (
     <article className="activity-card">
@@ -47,7 +45,7 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           <Icon name="users" />
           <span>
             {isReserved
-              ? "Vieta rezervuota (demonstracija)"
+              ? "Vieta rezervuota"
               : `Laisvų vietų: ${available} iš ${activity.capacity}`}
           </span>
         </div>

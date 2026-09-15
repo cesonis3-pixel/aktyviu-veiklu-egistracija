@@ -386,7 +386,7 @@ p {
   padding-inline: 8px;
   font-size: 0.85rem;
 }
-.demo-note {
+.activity-note {
   font-size: 0.78rem;
   color: #63788b;
   margin: 22px 0 0;
@@ -501,10 +501,10 @@ p {
 .search-input input:focus-visible {
   outline: none;
 }
-.search-form + .demo-note {
+.search-form + .activity-note {
   margin: 0 0 28px;
 }
-.page-section > .demo-note {
+.page-section > .activity-note {
   margin-bottom: 24px;
 }
 .back-link {

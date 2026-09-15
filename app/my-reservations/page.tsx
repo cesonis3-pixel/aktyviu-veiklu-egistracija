@@ -15,6 +15,7 @@ async function MyReservationsPageContent() {
         .from("reservations")
         .select("activity_id, status, created_at")
         .eq("user_id", user.id)
+        .eq("status", "active")
         .order("created_at", { ascending: false })
     : { data: [], error: null };
   const activities = user && !error ? await getActivities() : [];

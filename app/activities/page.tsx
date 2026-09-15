@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { ActivitiesList } from "@/components/activities-list";
-import { activities } from "@/lib/demo-activities";
+import { getActivities } from "@/lib/activities";
 export const metadata: Metadata = { title: "Visos veiklos" };
-export default function ActivitiesPage() {
+export default async function ActivitiesPage() {
+  const activities = await getActivities();
   return (
     <main id="main-content" className="container page-section">
       <div className="page-heading">
