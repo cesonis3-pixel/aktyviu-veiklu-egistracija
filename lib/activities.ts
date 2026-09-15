@@ -14,57 +14,14 @@ type ActivityRow = {
   organizer_name?: string | null;
 };
 
-const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>>> = {
-  "Slidinėjimo treniruotė": {
-    "category": "Slidinėjimas",
-    "organizer": "Jurgita",
-    "image": "/images/ski-tour.jpg",
-    "imageAlt": "Slidininkų grupė snieguotame miške"
-  },
-  "Slidinėjimo išvyka": {
-    "category": "Slidinėjimas",
-    "organizer": "Povilas",
-    "image": "/images/ski-tour.jpg",
-    "imageAlt": "Slidininkų grupė snieguotame miške"
-  },
-  "Žygis gamtoje": {
-    "category": "Žygiai",
-    "organizer": "Jurgita",
-    "image": "/images/winter-forest.jpg",
-    "imageAlt": "Snieguotas takas tarp žiemos miško medžių"
-  },
-  "Žiemos aktyvi veikla": {
-    "category": "Aktyvus laisvalaikis",
-    "organizer": "Povilas",
-    "image": "/images/winter-adventure.jpg",
-    "imageAlt": "Žiemos nuotykių dalyviai keliauja per snieguotą mišką"
-  },
-  "Keturračiai sniege": {
-    "category": "Keturračiai",
-    "image": "/images/winter-atv.png",
-    "imageAlt": "Keturračiai su vairuotojais snieguotame miško take"
-  },
-  "Lauko treniruotė": {
-    "category": "Lauko treniruotės",
-    "image": "/images/winter-fitness.png",
-    "imageAlt": "Dalyviai atlieka mankštos pratimus snieguotame parke"
-  }
-};
-
-const imageByTitle: Partial<Record<string, Pick<Activity, "image" | "imageAlt">>> = {
-  "Snieglenčių išvyka": {
-    image: "/images/winter-snowboard.png",
-    imageAlt: "Snieglentininkas leidžiasi snieguotu šlaitu",
-  },
-  "Rogutės": {
-    image: "/images/winter-sledding.png",
-    imageAlt: "Dalyviai leidžiasi rogutėmis nuo snieguoto kalnelio",
-  },
-  "Čiuožimas": {
-    image: "/images/winter-skating.png",
-    imageAlt: "Dalyviai su pačiūžomis žiemos lauko čiuožykloje",
-  }
-};
+const activityImages = [
+  { image: "/images/ski-tour.jpg", imageAlt: "Slidininkų grupė snieguotame miške" },
+  { image: "/images/winter-atv.png", imageAlt: "Keturračiai su vairuotojais snieguotame miško take" },
+  { image: "/images/winter-fitness.png", imageAlt: "Dalyviai atlieka mankštos pratimus snieguotame parke" },
+  { image: "/images/winter-snowboard.png", imageAlt: "Snieglentininkas leidžiasi snieguotu šlaitu" },
+  { image: "/images/winter-sledding.png", imageAlt: "Dalyviai leidžiasi rogutėmis nuo snieguoto kalnelio" },
+  { image: "/images/winter-skating.png", imageAlt: "Dalyviai su pačiūžomis žiemos lauko čiuožykloje" },
+] as const;
 
 // Pavadinimas parenka tik iliustraciją ir kategoriją; DB tekstai ir UUID išlieka.
 function thematicPresentation(title: string) {
@@ -87,10 +44,18 @@ function thematicPresentation(title: string) {
   if (/treniruot|mankst|fitnes/.test(value)) return {
     category: "Lauko treniruotės", image: "/images/winter-fitness.png", imageAlt: "Dalyviai atlieka mankštos pratimus snieguotame parke",
   };
-  if (/zyg|vaiksc|pesci/.test(value)) return {
-    category: "Žygiai", image: "/images/winter-adventure.jpg", imageAlt: "Žygio dalyviai keliauja snieguotu mišku",
-  };
+  if (/zyg|vaiksc|pesci/.test(value)) return { category: "Žygiai" };
   return {};
+}
+
+function fallbackImage(id: string) {
+  let hash = 0;
+  for (const character of id) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return activityImages[hash % activityImages.length];
+}
+
+function hasSpecificImage(title: string) {
+  return "image" in thematicPresentation(title);
 }
 
 export function toActivity(row: ActivityRow): Activity {
@@ -113,11 +78,8 @@ export function toActivity(row: ActivityRow): Activity {
     available: row.available,
     status: row.status,
     description: row.description ?? "",
-    image: "/images/winter-mountains.jpg",
-    imageAlt: "Snieguotas žiemos kraštovaizdis",
+    ...fallbackImage(row.id),
     ...thematicPresentation(row.title),
-    ...presentation[row.title],
-    ...(imageByTitle[row.title] ?? {}),
     organizer: organizerName,
     organizer_name: organizerName,
   };
@@ -134,8 +96,25 @@ export async function getActivities() {
     : { data: [], error: null };
   if (reservationError) throw reservationError;
   const reserved = new Set((reservations ?? []).map(row => row.activity_id));
-  return (data as ActivityRow[]).map(row => ({
+  const rows = data as ActivityRow[];
+  const specificallyUsedImages = new Set(
+    rows.filter(row => hasSpecificImage(row.title))
+      .map(row => thematicPresentation(row.title).image),
+  );
+  const availableFallbackImages = activityImages.filter(
+    image => !specificallyUsedImages.has(image.image),
+  );
+  const fallbackImages = availableFallbackImages.length ? availableFallbackImages : activityImages;
+  // Neatpažintos veiklos gauna skirtingus šešis vaizdus pagal stabilų UUID rikiavimą.
+  // Kadangi abu puslapiai ima tą patį visą sąrašą čia, jų priskyrimas sutampa.
+  const fallbackById = new Map(
+    rows.filter(row => !hasSpecificImage(row.title))
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((row, index) => [row.id, fallbackImages[index % fallbackImages.length]]),
+  );
+  return rows.map(row => ({
     ...toActivity(row),
+    ...(fallbackById.get(row.id) ?? {}),
     isReserved: reserved.has(row.id),
   }));
 }
