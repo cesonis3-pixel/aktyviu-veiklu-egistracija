@@ -7,6 +7,7 @@ import { Icon } from "./icon";
 export function ActivityCard({ activity }: { activity: Activity }) {
   const isReserved = activity.isReserved;
   const available = activity.available;
+  const cancelled = activity.status === "cancelled";
   const href = `/activities/${activity.id}`;
   return (
     <article className="activity-card">
@@ -41,10 +42,10 @@ export function ActivityCard({ activity }: { activity: Activity }) {
             <span>Organizatorius: {activity.organizer}</span>
           </li>
         </ul>
-        <div className={`availability ${available === 0 ? "is-full" : ""}`}>
+        <div className={`availability ${cancelled || available === 0 ? "is-full" : ""}`}>
           <Icon name="users" />
           <span>
-            {isReserved
+            {cancelled ? "Veikla atšaukta" : isReserved
               ? "Vieta rezervuota"
               : `Laisvų vietų: ${available} iš ${activity.capacity}`}
           </span>
@@ -53,7 +54,9 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          {isReserved ? (
+          {cancelled ? (
+            <button disabled type="button">Veikla atšaukta</button>
+          ) : isReserved ? (
             <Link className="button" href={`${href}#reservation`}>
               Mano vieta
             </Link>

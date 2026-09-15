@@ -9,7 +9,7 @@ import { Icon } from "./icon";
 function reservationMessage(error: string) {
   if (error.includes("Vietų nebeliko") || error.includes("Laisvų vietų")) return "Vietų nebeliko.";
   if (error.includes("jau rezervavote") || error.includes("jau turite rezervaciją")) return "Jūs jau turite rezervaciją šiai veiklai";
-  if (error.includes("nebepriima") || error.includes("atšaukta")) return "Ši veikla atšaukta";
+  if (error.includes("nebepriima") || error.includes("atšaukta")) return "Ši veikla atšaukta.";
   if (error.includes("Prisijung")) return "Norint rezervuoti vietą reikia prisijungti.";
   return error || "Rezervacijos nepavyko pakeisti.";
 }
@@ -23,6 +23,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
   const [refreshing, startTransition] = useTransition();
   const inFlight = useRef(false);
   const busy = pending || refreshing;
+  const cancelled = activity.status === "cancelled";
 
   useEffect(() => {
     if (!signedIn) return;
@@ -40,7 +41,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
 
   async function changeReservation(method: "POST" | "DELETE") {
     if (inFlight.current || busy || !signedIn) return;
-    if (method === "POST" && (reserved || available <= 0)) return;
+    if (cancelled || (method === "POST" && (reserved || available <= 0))) return;
     inFlight.current = true;
     setPending(true);
     setNotice("");
@@ -54,6 +55,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
       if (!response.ok) {
         setNotice(reservationMessage(result.error ?? ""));
         if (response.status === 401) router.push("/login");
+        if (response.status === 409) startTransition(() => router.refresh());
         return;
       }
       if (method === "POST") {
@@ -83,7 +85,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
       <div className="detail-content">
         <div className="detail-heading">
           <h1>{activity.title}</h1>
-          <span className={`place-badge ${available === 0 ? "is-full" : ""}`}>Laisvų vietų: {available}</span>
+          <span className={`place-badge ${cancelled || available === 0 ? "is-full" : ""}`}>{cancelled ? "Veikla atšaukta" : `Laisvų vietų: ${available}`}</span>
         </div>
         <ul className="activity-meta detail-meta">
           <li><Icon name="calendar" /><time dateTime={activity.date}>{activity.dateLabel}</time></li>
@@ -98,10 +100,12 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
         </div>
         <div className="reservation-panel" id="reservation">
           <div>
-            <h2>{reserved ? "Tavo vieta rezervuota" : available > 0 ? "Prisijunk prie nuotykio" : "Visos vietos užimtos"}</h2>
-            <p>Rezervacija išsaugoma tavo paskyroje.</p>
+            <h2>{cancelled ? "Veikla atšaukta" : reserved ? "Tavo vieta rezervuota" : available > 0 ? "Prisijunk prie nuotykio" : "Visos vietos užimtos"}</h2>
+            <p>{cancelled ? "Organizatorius atšaukė veiklą. Naujos rezervacijos nebepriimamos. Esamos rezervacijos išlieka skiltyje „Mano rezervacijos“." : "Rezervacija išsaugoma tavo paskyroje."}</p>
           </div>
-          {reserved ? (
+          {cancelled ? (
+            <button type="button" disabled>Veikla atšaukta</button>
+          ) : reserved ? (
             <button type="button" className="button button-outline" disabled={busy} onClick={() => changeReservation("DELETE")}>{busy ? "Atšaukiama..." : "Atšaukti rezervaciją"}</button>
           ) : available === 0 ? (
             <button type="button" disabled>Pilna</button>
@@ -111,7 +115,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
             <Link className="button" href="/login">Registruoti vietą <Icon name="arrow" /></Link>
           )}
         </div>
-        {!signedIn && available > 0 && <p className="activity-note">Norint rezervuoti vietą reikia prisijungti.</p>}
+        {!cancelled && !signedIn && available > 0 && <p className="activity-note">Norint rezervuoti vietą reikia prisijungti.</p>}
         <p role="status" className="reservation-notice">{notice}</p>
       </div>
     </article>

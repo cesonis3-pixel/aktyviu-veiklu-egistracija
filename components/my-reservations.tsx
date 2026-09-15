@@ -44,12 +44,17 @@ export function MyReservations({
         </div>
       ) : items.length ? (
         <div className="activity-grid">
-          {items.map(({ activity }) => (
+          {items.map(({ activity, reservation }) => (
             <div key={activity.id}>
               <ActivityCard activity={activity} />
-              <button type="button" onClick={() => cancel(activity.id)}>
+              {activity.status === "cancelled" ? (
+                <p className="activity-note">
+                  Organizatorius atšaukė veiklą. Tavo rezervacijos įrašas išsaugotas.
+                  {reservation.status === "cancelled" ? " Rezervacijos būsena: atšaukta." : " Rezervacijos būsena: aktyvi; veikla neįvyks."}
+                </p>
+              ) : <button type="button" onClick={() => cancel(activity.id)}>
                 Atšaukti rezervaciją
-              </button>
+              </button>}
             </div>
           ))}
         </div>

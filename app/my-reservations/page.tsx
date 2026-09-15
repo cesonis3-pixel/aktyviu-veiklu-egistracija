@@ -15,7 +15,6 @@ async function MyReservationsPageContent() {
         .from("reservations")
         .select("activity_id, status, created_at")
         .eq("user_id", user.id)
-        .eq("status", "active")
         .order("created_at", { ascending: false })
     : { data: [], error: null };
   const activities = user && !error ? await getActivities() : [];
@@ -24,7 +23,9 @@ async function MyReservationsPageContent() {
       reservation,
       activity: activities.find((activity) => activity.id === reservation.activity_id),
     }))
-    .filter((item) => item.activity);
+    .filter((item) => item.activity && (
+      item.reservation.status === "active" || item.activity.status === "cancelled"
+    ));
 
   return (
     <main id="main-content" className="container page-section">
