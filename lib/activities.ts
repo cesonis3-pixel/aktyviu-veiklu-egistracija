@@ -15,6 +15,7 @@ type ActivityRow = {
 const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>>> = {
   "Slidinėjimo treniruotė": {
     "category": "Slidinėjimas",
+    "organizer": "Jurgita",
     "image": "/images/ski-tour.jpg",
     "imageAlt": "Slidininkų grupė snieguotame miške"
   },
@@ -29,12 +30,6 @@ const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "
     "organizer": "Jurgita",
     "image": "/images/winter-forest.jpg",
     "imageAlt": "Snieguotas takas tarp žiemos miško medžių"
-  },
-  "Slidinėjimo treniruotė": {
-    "category": "Slidinėjimas",
-    "organizer": "Jurgita",
-    "image": "/images/ski-tour.jpg",
-    "imageAlt": "Slidininkų grupė snieguotame miške"
   },
   "Žiemos aktyvi veikla": {
     "category": "Aktyvus laisvalaikis",
