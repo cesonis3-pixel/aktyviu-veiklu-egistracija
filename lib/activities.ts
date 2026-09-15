@@ -25,6 +25,12 @@ const presentation: Partial<Record<string, Pick<Activity, "category" | "organize
     "image": "/images/winter-forest.jpg",
     "imageAlt": "Snieguotas takas tarp žiemos miško medžių"
   },
+  "Slidinėjimo treniruotė": {
+    "category": "Slidinėjimas",
+    "organizer": "Jurgita",
+    "image": "/images/ski-tour.jpg",
+    "imageAlt": "Slidininkų grupė snieguotame miške"
+  },
   "Žiemos aktyvi veikla": {
     "category": "Aktyvus laisvalaikis",
     "organizer": "Povilas",
