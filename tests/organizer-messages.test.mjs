@@ -38,6 +38,37 @@ function messaging({ user = { id: "sender" }, error = null } = {}) {
 }
 const messageBody = { activityId: "3e9e0b88-a653-4d37-8f48-6faabf12a866", subject: " Tema ", message: " Žinutė " };
 
+test("reactivation API requires a session and forwards only the activity UUID", async () => {
+  for (const signedIn of [false, true]) {
+    const calls = [];
+    const { POST } = load("../app/api/activities/[id]/reactivate/route.ts", {
+      "next/server": { NextResponse },
+      "@/lib/supabase/server": { createClient: async () => ({
+        auth: { getUser: async () => ({ data: { user: signedIn ? { id: "owner" } : null } }) },
+        rpc: async (...args) => { calls.push(args); return { data: { success: true, status: "active" }, error: null }; },
+      }) },
+    });
+    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activityId }) });
+    assert.equal(response.status, signedIn ? 200 : 401);
+    assert.deepEqual(calls, signedIn ? [["reactivate_activity", { p_activity_id: messageBody.activityId }]] : []);
+  }
+});
+
+test("reactivation API explains missing, foreign, active and past activities", async () => {
+  for (const [code, expected] of [["P0002", 404], ["P0008", 403], ["P0022", 409], ["P0023", 409]]) {
+    const { POST } = load("../app/api/activities/[id]/reactivate/route.ts", {
+      "next/server": { NextResponse },
+      "@/lib/supabase/server": { createClient: async () => ({
+        auth: { getUser: async () => ({ data: { user: { id: "owner" } } }) },
+        rpc: async () => ({ data: null, error: { code } }),
+      }) },
+    });
+    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activityId }) });
+    assert.equal(response.status, expected);
+    if (code === "P0023") assert.equal((await response.json()).error, "Negalima aktyvuoti veiklos, kurios data jau praėjo. Pirmiausia pakeiskite datą.");
+  }
+});
+
 for (const [name, whitespace] of [["spaces", "   "], ["tabs", "\t\t"], ["line breaks", "\n\r\n"], ["mixed whitespace", " \t\n\r "]]) {
   test(`message API rejects ${name} in subject and message`, async () => {
     for (const field of ["subject", "message"]) {
@@ -253,6 +284,7 @@ test("activity detail shows owner management and hides messaging from owner", ()
     "next/image": { __esModule: true, default: () => null },
     "next/navigation": { useRouter: () => ({ refresh() {}, push() {} }) },
     "./icon": { Icon: () => null },
+    "./reactivate-activity": { ReactivateActivity: () => null },
   });
   const activity = {
     id: "activity-1",
