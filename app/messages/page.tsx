@@ -32,14 +32,19 @@ export default async function MessagesPage() {
           </div>
         </div>
       </div>
-      {!messages || messages.length === 0 ? (
+      {(["Gautos", "Išsiųstos"] as const).map(section => {
+        const items = (messages ?? []).filter(message => section === "Gautos"
+          ? message.recipient_id === user.id : message.sender_id === user.id);
+        return <section key={section} aria-label={section} className="section">
+        <h2>{section}</h2>
+        {items.length === 0 ? (
         <div className="empty-state">
           <h2>Žinučių nėra</h2>
-          <p>Kol kas jums neskirta jokių žinučių.</p>
+          <p>{section === "Gautos" ? "Kol kas negavote žinučių." : "Kol kas neišsiuntėte žinučių."}</p>
         </div>
       ) : (
         <div className="activity-grid">
-          {messages.map((message) => {
+          {items.map((message) => {
             const activityTitle = (() => {
               if (Array.isArray(message.activities)) {
                 return message.activities[0]?.title ?? "Nežinoma";
@@ -66,7 +71,8 @@ export default async function MessagesPage() {
             );
           })}
         </div>
-      )}
+      )}</section>;
+      })}
     </main>
   );
 }

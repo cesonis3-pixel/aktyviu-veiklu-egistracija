@@ -348,7 +348,7 @@ begin
   for policy_row in select policyname from pg_policies
     where schemaname = 'public' and tablename = 'activity_messages'
   loop
-    execute format('drop policy %I on public.activity_messages', policy_row.policyname);
+    execute format('drop policy if exists %I on public.activity_messages', policy_row.policyname);
   end loop;
 end;
 $$;

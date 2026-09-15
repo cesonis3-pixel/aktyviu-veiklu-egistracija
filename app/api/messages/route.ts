@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body) ||
-      Object.keys(body).some(key => !["activityId", "subject", "message"].includes(key)) ||
-      typeof body.activityId !== "string" ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.activityId) ||
+      Object.keys(body).some(key => !["activity_id", "subject", "message"].includes(key)) ||
+      typeof body.activity_id !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.activity_id) ||
       typeof body.subject !== "string" || !body.subject.trim() || body.subject.trim().length > 120 ||
       typeof body.message !== "string" || !body.message.trim() || body.message.trim().length > 2000) {
     return NextResponse.json({ error: "Neteisingi duomenys. Įveskite temą (iki 120) ir žinutę (iki 2000 simbolių)." }, { status: 400 });
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Prisijunkite prie paskyros." }, { status: 401 });
     const { data, error } = await supabase.rpc("send_activity_message", {
-      p_activity_id: body.activityId, p_subject: body.subject.trim(), p_message: body.message.trim(),
+      p_activity_id: body.activity_id, p_subject: body.subject.trim(), p_message: body.message.trim(),
     });
     if (error) {
       const errors: Record<string, [number, string]> = {

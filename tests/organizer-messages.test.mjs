@@ -36,7 +36,7 @@ function messaging({ user = { id: "sender" }, error = null } = {}) {
     method: "POST", body: JSON.stringify(body),
   })) };
 }
-const messageBody = { activityId: "3e9e0b88-a653-4d37-8f48-6faabf12a866", subject: " Tema ", message: " Žinutė " };
+const messageBody = { activity_id: "3e9e0b88-a653-4d37-8f48-6faabf12a866", subject: " Tema ", message: " Žinutė " };
 
 test("reactivation API requires a session and forwards only the activity UUID", async () => {
   for (const signedIn of [false, true]) {
@@ -48,9 +48,9 @@ test("reactivation API requires a session and forwards only the activity UUID", 
         rpc: async (...args) => { calls.push(args); return { data: { success: true, status: "active" }, error: null }; },
       }) },
     });
-    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activityId }) });
+    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activity_id }) });
     assert.equal(response.status, signedIn ? 200 : 401);
-    assert.deepEqual(calls, signedIn ? [["reactivate_activity", { p_activity_id: messageBody.activityId }]] : []);
+    assert.deepEqual(calls, signedIn ? [["reactivate_activity", { p_activity_id: messageBody.activity_id }]] : []);
   }
 });
 
@@ -63,7 +63,7 @@ test("reactivation API explains missing, foreign, active and past activities", a
         rpc: async () => ({ data: null, error: { code } }),
       }) },
     });
-    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activityId }) });
+    const response = await POST(new Request("http://localhost", { method: "POST" }), { params: Promise.resolve({ id: messageBody.activity_id }) });
     assert.equal(response.status, expected);
     if (code === "P0023") assert.equal((await response.json()).error, "Negalima aktyvuoti veiklos, kurios data jau praėjo. Pirmiausia pakeiskite datą.");
   }
@@ -95,7 +95,7 @@ test("message API passes only activity, subject and message to RPC", async () =>
   const api = messaging();
   assert.equal((await api.send(messageBody)).status, 200);
   assert.deepEqual(api.calls, [["send_activity_message", {
-    p_activity_id: messageBody.activityId, p_subject: "Tema", p_message: "Žinutė",
+    p_activity_id: messageBody.activity_id, p_subject: "Tema", p_message: "Žinutė",
   }]]);
 });
 test("message API rejects client supplied sender or recipient", async () => {
@@ -109,7 +109,7 @@ test("message API requires authentication and nonempty bounded content", async (
   assert.equal((await messaging({ user: null }).send(messageBody)).status, 401);
   for (const body of [null, { ...messageBody, message: " " }, { ...messageBody, subject: "" },
     { ...messageBody, message: "x".repeat(2001) }, { ...messageBody, subject: "x".repeat(121) },
-    { ...messageBody, activityId: "bad-id" }]) {
+    { ...messageBody, activity_id: "bad-id" }]) {
     const api = messaging();
     assert.equal((await api.send(body)).status, 400);
     assert.equal(api.calls.length, 0);
@@ -217,7 +217,7 @@ test("edit route validates future date and positive capacity before database acc
 for (const status of ["active", "cancelled"]) {
   for (const own of [true, false]) {
     test(`editing ${status} activity: ${own ? "owner preserves status and creator" : "other user is rejected"}`, async () => {
-      const row = { id: messageBody.activityId, creator_id: "owner", status };
+      const row = { id: messageBody.activity_id, creator_id: "owner", status };
       const filters = [];
       let updates = 0;
       const client = {

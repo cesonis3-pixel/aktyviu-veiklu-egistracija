@@ -18,6 +18,7 @@ export function Header({
     { href: "/activities", label: "Veiklos" },
     { href: "/my-reservations", label: "Mano rezervacijos" },
     ...(signedIn ? [{ href: "/my-activities", label: "Mano veiklos" }] : []),
+    ...(signedIn ? [{ href: "/messages", label: "Žinutės" }] : []),
   ];
   return (
     <header className="site-header">

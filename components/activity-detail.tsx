@@ -117,7 +117,7 @@ export function ActivityDetail({
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: activity.id, subject: trimmedSubject, message: trimmedMessage }),
+        body: JSON.stringify({ activity_id: activity.id, subject: trimmedSubject, message: trimmedMessage }),
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
