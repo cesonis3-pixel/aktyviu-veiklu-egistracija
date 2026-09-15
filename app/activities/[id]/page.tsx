@@ -16,7 +16,12 @@ export default async function ActivityPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const isOwner = Boolean(user && activity.creator_id && activity.creator_id === user.id);
+  // Savininką skaitome iš lentelės, net jei senesnis sąrašo RPC creator_id negrąžina.
+  const { data: owner, error } = user
+    ? await supabase.from("activities").select("creator_id").eq("id", activity.id).maybeSingle()
+    : { data: null, error: null };
+  if (error) throw error;
+  const isOwner = !owner || owner.creator_id === user?.id;
   return (
     <main id="main-content" className="container page-section">
       <Link className="back-link" href="/activities">
