@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { NextResponse } from "next/server.js";
 
 function load(relativePath, mocks = {}) {
   const source = ts.transpileModule(readFileSync(new URL(relativePath, import.meta.url), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS },
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: relativePath.endsWith(".tsx") ? ts.JsxEmit.ReactJSX : undefined,
+    },
   }).outputText;
   const compiledModule = { exports: {} };
   const requireFrom = (name) => {
@@ -127,4 +132,42 @@ test("public activity uses organizer_name when available", () => {
 
   assert.equal(result.organizer, "Snow Adventure LT");
   assert.equal(result.organizer_name, "Snow Adventure LT");
+});
+
+test("activity detail shows owner management and hides messaging from owner", () => {
+  const { ActivityDetail } = load("../components/activity-detail.tsx", {
+    react: React,
+    "react/jsx-runtime": { jsx: React.createElement, jsxs: React.createElement, Fragment: React.Fragment },
+    "next/link": { __esModule: true, default: ({ children, ...props }) => React.createElement("a", props, children) },
+    "next/image": { __esModule: true, default: () => null },
+    "next/navigation": { useRouter: () => ({ refresh() {}, push() {} }) },
+    "./icon": { Icon: () => null },
+  });
+  const activity = {
+    id: "activity-1",
+    creator_id: "owner-1",
+    title: "Winter hike",
+    category: "Žygiai",
+    date: "2100-01-23T11:00:00+02:00",
+    dateLabel: "2100 m. sausio 23 d. · 11:00",
+    location: "Trakai",
+    organizer: "Organizatorius",
+    organizer_name: "Snow Adventure LT",
+    capacity: 10,
+    available: 4,
+    status: "active",
+    image: "/images/winter-forest.jpg",
+    imageAlt: "Miškas",
+    description: "Test",
+  };
+  const ownerHtml = renderToStaticMarkup(React.createElement(ActivityDetail, { activity, signedIn: true, currentUserId: "owner-1" }));
+  const visitorHtml = renderToStaticMarkup(React.createElement(ActivityDetail, { activity, signedIn: true, currentUserId: "visitor-1" }));
+
+  assert.match(ownerHtml, /Veiklos valdymas/);
+  assert.match(ownerHtml, /Redaguoti/);
+  assert.match(ownerHtml, /Ištrinti veiklą/);
+  assert.doesNotMatch(ownerHtml, /Parašyti organizatoriui/);
+  assert.match(visitorHtml, /Parašyti organizatoriui/);
+  assert.doesNotMatch(visitorHtml, /Veiklos valdymas/);
+  assert.match(ownerHtml, /Snow Adventure LT/);
 });

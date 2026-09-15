@@ -84,8 +84,6 @@ export function toActivity(row: ActivityRow): Activity {
       hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vilnius",
     }).format(date),
     location: row.location,
-    organizer: organizerName,
-    organizer_name: organizerName,
     capacity: row.capacity,
     available: row.available,
     status: row.status,
@@ -94,6 +92,8 @@ export function toActivity(row: ActivityRow): Activity {
     description: row.description ?? "",
     ...thematicPresentation(row.title),
     ...presentation[row.title],
+    organizer: organizerName,
+    organizer_name: organizerName,
   };
 }
 

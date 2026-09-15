@@ -14,8 +14,21 @@ function reservationMessage(error: string) {
   return error || "Rezervacijos nepavyko pakeisti.";
 }
 
-export function ActivityDetail({ activity, signedIn, isOwner = false }: { activity: Activity; signedIn: boolean; isOwner?: boolean }) {
+export function ActivityDetail({
+  activity,
+  signedIn,
+  currentUserId,
+  isOwner: ownerOverride = false,
+}: {
+  activity: Activity;
+  signedIn: boolean;
+  currentUserId?: string | null;
+  isOwner?: boolean;
+}) {
   const router = useRouter();
+  const isOwner = currentUserId !== undefined
+    ? Boolean(currentUserId && currentUserId === activity.creator_id)
+    : ownerOverride;
   const [notice, setNotice] = useState("");
   const [reserved, setReserved] = useState(Boolean(activity.isReserved));
   const [available, setAvailable] = useState(activity.available);
@@ -25,6 +38,8 @@ export function ActivityDetail({ activity, signedIn, isOwner = false }: { activi
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const inFlight = useRef(false);
   const busy = pending || refreshing;
   const cancelled = activity.status === "cancelled";
@@ -117,6 +132,47 @@ export function ActivityDetail({ activity, signedIn, isOwner = false }: { activi
     }
   }
 
+  async function deleteActivity() {
+    if (!isOwner || deleting) return;
+    setDeleting(true);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/activities/${activity.id}`, { method: "DELETE" });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setNotice(result.error ?? "Nepavyko ištrinti veiklos.");
+        return;
+      }
+      router.push("/my-activities");
+      router.refresh();
+    } catch {
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
+    } finally {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  }
+
+  async function cancelActivity() {
+    if (!isOwner || cancelled || deleting) return;
+    setDeleting(true);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/activities/${activity.id}/cancel`, { method: "POST" });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setNotice(result.error ?? "Nepavyko atšaukti veiklos.");
+        return;
+      }
+      setNotice("Veikla atšaukta.");
+      router.refresh();
+    } catch {
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <article className="detail-card">
       <div className="detail-image">
@@ -136,9 +192,34 @@ export function ActivityDetail({ activity, signedIn, isOwner = false }: { activi
           <section><h2>Apie veiklą</h2><p>{activity.description}</p></section>
           <aside className="organizer">
             <span className="organizer-avatar"><Icon name="user" /></span>
-            <div><span className="muted">Organizatorius</span><h2>{activity.organizer || "Organizatorius"}</h2><p>Žiemos nuotykių entuziastas</p></div>
+            <div><span className="muted">Organizatorius</span><h2>{activity.organizer_name?.trim() || "Organizatorius"}</h2><p>Žiemos nuotykių entuziastas</p></div>
           </aside>
         </div>
+        {isOwner ? (
+          <section className="activity-management" aria-labelledby="activity-management-title">
+            <h2 id="activity-management-title">Veiklos valdymas</h2>
+            <div className="confirmation-actions">
+              <Link className="button" href={`/my-activities/${activity.id}/edit`}>Redaguoti</Link>
+              {!cancelled && (
+                <button type="button" className="button button-outline" onClick={cancelActivity} disabled={deleting}>
+                  {deleting ? "Atšaukiama..." : "Atšaukti veiklą"}
+                </button>
+              )}
+              {!confirmingDelete ? (
+                <button type="button" className="button button-outline" onClick={() => setConfirmingDelete(true)} disabled={deleting}>Ištrinti veiklą</button>
+              ) : (
+                <div className="activity-confirmation" role="alertdialog" aria-labelledby="detail-delete-title">
+                  <h3 id="detail-delete-title">Ar tikrai norite ištrinti šią veiklą?</h3>
+                  <p>Šio veiksmo atšaukti negalima. Jei veikla turi aktyvių rezervacijų, serveris trynimą atmes.</p>
+                  <div className="confirmation-actions">
+                    <button type="button" onClick={deleteActivity} disabled={deleting}>{deleting ? "Trinama..." : "Patvirtinti trynimą"}</button>
+                    <button type="button" className="button button-outline" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Atšaukti</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : null}
         <div className="reservation-panel" id="reservation">
           <div>
             <h2>{cancelled ? "Veikla atšaukta" : reserved ? "Tavo vieta rezervuota" : available > 0 ? "Prisijunk prie nuotykio" : "Visos vietos užimtos"}</h2>

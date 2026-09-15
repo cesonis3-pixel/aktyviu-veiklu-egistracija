@@ -39,7 +39,7 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           </li>
           <li>
             <Icon name="user" />
-            <span>Organizatorius: {activity.organizer || "Organizatorius"}</span>
+            <span>Organizatorius: {activity.organizer_name?.trim() || "Organizatorius"}</span>
           </li>
         </ul>
         <div className={`availability ${cancelled || available === 0 ? "is-full" : ""}`}>
