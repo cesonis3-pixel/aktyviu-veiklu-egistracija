@@ -39,6 +39,33 @@ const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "
   }
 };
 
+// Pavadinimas parenka tik iliustraciją ir kategoriją; DB tekstai ir UUID išlieka.
+function thematicPresentation(title: string) {
+  const value = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/keturrat|keturrac|keturic|\batv\b/.test(value)) return {
+    category: "Keturračiai", image: "/images/winter-atv.png", imageAlt: "Keturračiai su vairuotojais snieguotame miško take",
+  };
+  if (/snieglent/.test(value)) return {
+    category: "Snieglentės", image: "/images/winter-snowboard.png", imageAlt: "Snieglentininkas leidžiasi snieguotu šlaitu",
+  };
+  if (/rogut|rogem|rogiu/.test(value)) return {
+    category: "Rogutės", image: "/images/winter-sledding.png", imageAlt: "Dalyviai leidžiasi rogutėmis nuo snieguoto kalnelio",
+  };
+  if (/ciuozi|paciuz/.test(value)) return {
+    category: "Čiuožimas", image: "/images/winter-skating.png", imageAlt: "Dalyviai su pačiūžomis žiemos lauko čiuožykloje",
+  };
+  if (/slidin|slidem|slidzi/.test(value)) return {
+    category: "Slidinėjimas", image: "/images/ski-tour.jpg", imageAlt: "Slidininkų grupė snieguotame miške",
+  };
+  if (/treniruot|mankst|fitnes/.test(value)) return {
+    category: "Lauko treniruotės", image: "/images/winter-fitness.png", imageAlt: "Dalyviai atlieka mankštos pratimus snieguotame parke",
+  };
+  if (/zyg|vaiksc|pesci/.test(value)) return {
+    category: "Žygiai", image: "/images/winter-adventure.jpg", imageAlt: "Žygio dalyviai keliauja snieguotu mišku",
+  };
+  return {};
+}
+
 export function toActivity(row: ActivityRow): Activity {
   const date = new Date(row.starts_at);
   return {
@@ -57,9 +84,10 @@ export function toActivity(row: ActivityRow): Activity {
     capacity: row.capacity,
     available: row.available,
     status: row.status,
-    image: "/images/winter-adventure.jpg",
-    imageAlt: "Žiemos aktyvios veiklos dalyviai",
+    image: "/images/winter-mountains.jpg",
+    imageAlt: "Snieguotas žiemos kraštovaizdis",
     description: row.description ?? "",
+    ...thematicPresentation(row.title),
     ...presentation[row.title],
   };
 }

@@ -1,0 +1,26 @@
+{
+  "generator": "Built-in image_gen",
+  "purpose": "Illustrative winter activity images, not photographs of actual events.",
+  "images": [
+    {
+      "file": "winter-atv.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Baltic Winter activity website photograph, landscape 1536x1024. Two helmeted adults riding clearly visible four-wheeled all-terrain quad bikes on a snowy forest trail. Natural winter daylight, snow-covered Baltic pine forest surroundings, muted cool colors. Subjects and relevant sports equipment clearly recognizable centered in frame with room for cropping. No text, logos or watermark. Produce one standalone photo."
+    },
+    {
+      "file": "winter-fitness.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Baltic Winter activity website photograph, landscape 1536x1024. Small group of adults in winter sports clothing doing standing lunges and warm-up exercise on a snowy outdoor park exercise ground. Clearly fitness training, not hiking. Natural winter daylight, snow-covered Baltic pine forest surroundings, muted cool colors. Subjects and relevant sports equipment clearly recognizable centered in frame with room for cropping. No text, logos or watermark. Produce one standalone photo."
+    },
+    {
+      "file": "winter-snowboard.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Baltic Winter activity website photograph, landscape 1536x1024. An adult snowboarder with helmet riding a single clearly visible snowboard down a snowy gentle slope. Natural winter daylight, snow-covered Baltic pine forest surroundings, muted cool colors. Subjects and relevant sports equipment clearly recognizable centered in frame with room for cropping. No text, logos or watermark. Produce one standalone photo."
+    },
+    {
+      "file": "winter-skating.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Baltic Winter activity website photograph, landscape 1536x1024. Two adults ice skating on a maintained outdoor ice rink in winter, clearly visible ice skates. Natural winter daylight, snow-covered Baltic pine forest surroundings, muted cool colors. Subjects and relevant sports equipment clearly recognizable centered in frame with room for cropping. No text, logos or watermark. Produce one standalone photo."
+    },
+    {
+      "file": "winter-sledding.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Baltic Winter activity website photograph, landscape 1536x1024. Adults riding traditional sleds down a gentle snowy hill. Natural winter daylight, snow-covered Baltic pine forest surroundings, muted cool colors. Subjects and relevant sports equipment clearly recognizable centered in frame with room for cropping. No text, logos or watermark. Produce one standalone photo."
+    }
+  ]
+}

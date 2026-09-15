@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Icon } from "./icon";
 import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
 
@@ -10,8 +12,37 @@ export function MyActivities({ activities }: { activities: Activity[] }) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const inFlight = useRef(false);
+
+  async function remove(activityId: string) {
+    if (inFlight.current || pendingId) return;
+    inFlight.current = true;
+    setPendingId(activityId);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/activities/${activityId}`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) {
+        setNotice(result.error ?? "Nepavyko ištrinti veiklos.");
+        return;
+      }
+      setDeletedIds(current => [...current, activityId]);
+      setDeletingId(null);
+      setNotice("Veikla ištrinta.");
+      router.refresh();
+    } catch {
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
+    } finally {
+      inFlight.current = false;
+      setPendingId(null);
+    }
+  }
 
   async function cancel(activityId: string) {
+    if (inFlight.current || pendingId) return;
+    inFlight.current = true;
     setPendingId(activityId);
     setNotice("");
     try {
@@ -29,6 +60,7 @@ export function MyActivities({ activities }: { activities: Activity[] }) {
     } catch {
       setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
     } finally {
+      inFlight.current = false;
       setPendingId(null);
     }
   }
@@ -36,8 +68,16 @@ export function MyActivities({ activities }: { activities: Activity[] }) {
   return (
     <>
       {notice && <p role="status" className="reservation-notice">{notice}</p>}
+      {!activities.some(activity => !deletedIds.includes(activity.id)) && (
+        <div className="empty-state">
+          <Icon name="plus" />
+          <h2>Kol kas neturite veiklų</h2>
+          <p>Prisijungusios paskyros sukurtos veiklos bus rodomos čia.</p>
+          <Link className="button" href="/my-activities/new">Sukurti veiklą</Link>
+        </div>
+      )}
       <div className="activity-grid">
-        {activities.map((activity) => (
+        {activities.filter(activity => !deletedIds.includes(activity.id)).map((activity) => (
           <div key={activity.id}>
             <ActivityCard activity={activity} />
             {activity.status === "cancelled" ? (
@@ -68,9 +108,21 @@ export function MyActivities({ activities }: { activities: Activity[] }) {
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setConfirmingId(activity.id)}>
+              <button type="button" disabled={Boolean(pendingId)} onClick={() => { setDeletingId(null); setConfirmingId(activity.id); }}>
                 Atšaukti veiklą
               </button>
+            )}
+            {deletingId === activity.id ? (
+              <div className="activity-confirmation" role="alertdialog" aria-labelledby={`delete-title-${activity.id}`}>
+                <h2 id={`delete-title-${activity.id}`}>Ar tikrai norite ištrinti šią veiklą?</h2>
+                <p>Veiklos su aktyviomis rezervacijomis ištrinti negalima. Ištrynus veiklą bus pašalinta ir jos atšauktų rezervacijų istorija. Šio veiksmo atšaukti negalima.</p>
+                <div className="confirmation-actions">
+                  <button type="button" disabled={Boolean(pendingId)} onClick={() => remove(activity.id)}>{pendingId === activity.id ? "Trinama..." : "Ištrinti"}</button>
+                  <button type="button" className="button button-outline" disabled={Boolean(pendingId)} onClick={() => setDeletingId(null)}>Atšaukti</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="button button-outline" disabled={Boolean(pendingId)} onClick={() => { setConfirmingId(null); setDeletingId(activity.id); }}>Ištrinti veiklą</button>
             )}
           </div>
         ))}

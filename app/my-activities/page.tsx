@@ -69,17 +69,8 @@ export default async function MyActivitiesPage() {
           <h2>Nepavyko gauti veiklų</h2>
           <p>Patikrink Supabase ryšį ir bandyk dar kartą.</p>
         </div>
-      ) : activities.length ? (
-        <MyActivities activities={activities} />
       ) : (
-        <div className="empty-state">
-          <Icon name="plus" />
-          <h2>Kol kas neturite veiklų</h2>
-          <p>Prisijungusios paskyros sukurtos veiklos bus rodomos čia.</p>
-          <Link className="button" href="/my-activities/new">
-            Sukurti veiklą
-          </Link>
-        </div>
+        <MyActivities activities={activities} />
       )}
     </main>
   );

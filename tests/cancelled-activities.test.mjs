@@ -30,6 +30,7 @@ function load(path, overrides = {}) {
 const { ActivityCard } = load("../components/activity-card.tsx");
 const { ActivityDetail } = load("../components/activity-detail.tsx");
 const { MyReservations } = load("../components/my-reservations.tsx", { "./activity-card": { ActivityCard } });
+const { MyActivities } = load("../components/my-activities.tsx", { "./activity-card": { ActivityCard } });
 const activity = {
   id: "b913dace-786a-4ba1-9207-6281c247ee01", title: "Žygis gamtoje",
   status: "active", isReserved: true, available: 1, capacity: 10,
@@ -38,6 +39,14 @@ const activity = {
   description: "Žygio aprašymas", image: "/images/winter-forest.jpg", imageAlt: "Miškas",
 };
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
+
+test("my activities exposes deletion for supplied owned activities and an empty state", () => {
+  const html = render(MyActivities, { activities: [activity] });
+  assert.match(html, /Žygis gamtoje/);
+  assert.match(html, /Ištrinti veiklą/);
+  assert.doesNotMatch(html, /Ar tikrai norite ištrinti/);
+  assert.match(render(MyActivities, { activities: [] }), /Kol kas neturite veiklų/);
+});
 
 test("active activity and reservation keep existing participant actions", () => {
   const html = render(MyReservations, { signedIn: true, items: [{ activity, reservation: { activity_id: activity.id, status: "active" } }] });
