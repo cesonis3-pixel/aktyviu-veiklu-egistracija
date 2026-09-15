@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Icon } from "./icon";
 import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
+import { ReactivateActivity } from "./reactivate-activity";
 
 export function MyActivities({ activities, initialNotice = "" }: { activities: Activity[]; initialNotice?: string }) {
   const router = useRouter();
@@ -80,6 +81,7 @@ export function MyActivities({ activities, initialNotice = "" }: { activities: A
         {activities.filter(activity => !deletedIds.includes(activity.id)).map((activity) => (
           <div key={activity.id}>
             <ActivityCard activity={activity} />
+            <ReactivateActivity activityId={activity.id} cancelled={activity.status === "cancelled"} isOwner />
             {activity.status === "cancelled" ? (
               <p className="activity-note">Veikla atšaukta</p>
             ) : null}

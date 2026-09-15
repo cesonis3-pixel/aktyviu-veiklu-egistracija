@@ -15,6 +15,7 @@ function load(path, overrides = {}) {
     "next/image": { __esModule: true, default: () => null },
     "next/navigation": { useRouter: () => ({ refresh() {}, push() {} }) },
     "./icon": { Icon: () => null },
+    "./reactivate-activity": { ReactivateActivity: () => null },
     ...overrides,
   };
   const source = ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), {
@@ -39,6 +40,17 @@ const activity = {
   description: "Žygio aprašymas", image: "/images/winter-forest.jpg", imageAlt: "Miškas",
 };
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
+
+test("reactivation button is only visible for the owner of a cancelled activity", () => {
+  const { ReactivateActivity } = load("../components/reactivate-activity.tsx");
+  for (const isOwner of [true, false]) {
+    for (const cancelled of [true, false]) {
+      const html = render(ReactivateActivity, { activityId: activity.id, isOwner, cancelled });
+      assert.equal(html.includes("Aktyvuoti veiklą"), isOwner && cancelled);
+      assert.doesNotMatch(html, /Ar tikrai/);
+    }
+  }
+});
 
 test("messages page reads received and sent messages for authenticated creator", async () => {
   let filter;

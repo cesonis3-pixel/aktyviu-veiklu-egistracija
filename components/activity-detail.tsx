@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
+import { ReactivateActivity } from "./reactivate-activity";
 
 function reservationMessage(error: string) {
   if (error.includes("Vietų nebeliko") || error.includes("Laisvų vietų")) return "Vietų nebeliko.";
@@ -198,6 +199,7 @@ export function ActivityDetail({
             <div><span className="muted">Organizatorius</span><h2>{activity.organizer_name?.trim() || "Organizatorius"}</h2><p>Žiemos nuotykių entuziastas</p></div>
           </aside>
         </div>
+        <ReactivateActivity activityId={activity.id} cancelled={cancelled} isOwner={signedIn && isOwner} />
         {isOwner ? (
           <section className="activity-management" aria-labelledby="activity-management-title">
             <h2 id="activity-management-title">Veiklos valdymas</h2>
