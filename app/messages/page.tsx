@@ -9,7 +9,7 @@ export default async function MessagesPage() {
 
   const { data: messages, error } = await supabase
     .from("activity_messages")
-    .select("id, subject, message, created_at, read_at, sender_id, recipient_id, activities(title)")
+    .select("id, activity_id, subject, message, created_at, read_at, sender_id, recipient_id, activities(title)")
     .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
     .order("created_at", { ascending: false });
 
@@ -17,7 +17,7 @@ export default async function MessagesPage() {
     return (
       <main id="main-content" className="container page-section">
         <h1>Žinutės</h1>
-        <p>Nepavyko įkėlimi žinučių. Bandykite dar kartą.</p>
+        <p>Nepavyko įkelti žinučių. Bandykite dar kartą.</p>
       </main>
     );
   }
@@ -55,14 +55,12 @@ export default async function MessagesPage() {
               <article key={message.id} className="activity-card">
                 <div className="activity-body">
                   <h3>{message.subject}</h3>
-                  <p><strong>Veikla:</strong> {activityTitle ?? "Nežinoma"}</p>
+                  <p>{message.recipient_id === user.id ? "Gauta žinutė" : "Išsiųsta žinutė"}</p>
+                  <p><strong>Veikla:</strong> {message.activity_id ? <Link href={`/activities/${message.activity_id}`}>{activityTitle}</Link> : "Veikla ištrinta"}</p>
                   <p><strong>Siuntėjas:</strong> {message.sender_id === user.id ? "Jūs" : message.sender_id}</p>
                   <p><strong>Gavėjas:</strong> {message.recipient_id === user.id ? "Jūs" : message.recipient_id}</p>
-                  <p>{message.message}</p>
-                  <p><small>{new Date(message.created_at).toLocaleString("lt-LT")}</small></p>
-                  {message.recipient_id === user.id && !message.read_at ? (
-                    <Link href="#" className="button button-outline">Pažymėti kaip perskaitytą</Link>
-                  ) : null}
+                  <p style={{ whiteSpace: "pre-wrap" }}>{message.message}</p>
+                  <p><small>{new Date(message.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius" })}</small></p>
                 </div>
               </article>
             );

@@ -40,6 +40,39 @@ const activity = {
 };
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 
+test("messages page reads received and sent messages for authenticated creator", async () => {
+  let filter;
+  const { default: MessagesPage } = load("../app/messages/page.tsx", {
+    "@/lib/supabase/server": { createClient: async () => ({
+      auth: { getUser: async () => ({ data: { user: { id: "creator" } } }) },
+      from: table => {
+        assert.equal(table, "activity_messages");
+        return { select: () => ({ or: value => {
+          filter = value;
+          return { order: async () => ({ error: null, data: [{
+            id: "message", activity_id: activity.id, subject: "Klausimas apie veiklą",
+            message: "Kur susitinkame?", sender_id: "participant", recipient_id: "creator",
+            created_at: "2026-09-15T10:00:00Z", read_at: null, activities: { title: activity.title },
+          }] }) };
+        } }) };
+      },
+    }) },
+  });
+  const html = renderToStaticMarkup(await MessagesPage());
+  assert.equal(filter, "sender_id.eq.creator,recipient_id.eq.creator");
+  for (const text of ["Gauta žinutė", "Klausimas apie veiklą", "Kur susitinkame?", "participant", activity.title])
+    assert.ok(html.includes(text), text);
+});
+
+test("organizer message button is only shown to signed in nonowners including cancelled activities", () => {
+  for (const status of ["active", "cancelled"]) {
+    for (const [signedIn, isOwner, visible] of [[false, false, false], [true, true, false], [true, false, true]]) {
+      const html = render(ActivityDetail, { activity: { ...activity, status }, signedIn, isOwner });
+      assert.equal(html.includes("Parašyti organizatoriui"), visible);
+    }
+  }
+});
+
 test("my activities exposes deletion for supplied owned activities and an empty state", () => {
   const html = render(MyActivities, { activities: [activity] });
   assert.match(html, /Žygis gamtoje/);

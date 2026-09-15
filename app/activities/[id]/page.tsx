@@ -16,12 +16,18 @@ export default async function ActivityPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Savininką skaitome iš lentelės, net jei senesnis sąrašo RPC creator_id negrąžina.
+  const { data: owner, error } = user
+    ? await supabase.from("activities").select("creator_id").eq("id", activity.id).maybeSingle()
+    : { data: null, error: null };
+  if (error) throw error;
+  const activityWithOwner = owner ? { ...activity, creator_id: owner.creator_id } : activity;
   return (
     <main id="main-content" className="container page-section">
       <Link className="back-link" href="/activities">
         ← Grįžti į veiklas
       </Link>
-      <ActivityDetail activity={activity} signedIn={Boolean(user)} currentUserId={user?.id ?? null} />
+      <ActivityDetail activity={activityWithOwner} signedIn={Boolean(user)} currentUserId={user?.id ?? null} />
     </main>
   );
 }

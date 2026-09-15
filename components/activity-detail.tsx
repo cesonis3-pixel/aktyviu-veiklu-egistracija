@@ -40,6 +40,7 @@ export function ActivityDetail({
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const messageInFlight = useRef(false);
   const inFlight = useRef(false);
   const busy = pending || refreshing;
   const cancelled = activity.status === "cancelled";
@@ -101,13 +102,14 @@ export function ActivityDetail({
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!signedIn || isOwner || sending) return;
+    if (!signedIn || isOwner || sending || messageInFlight.current) return;
     const trimmedSubject = subject.trim();
     const trimmedMessage = message.trim();
     if (!trimmedSubject || !trimmedMessage) {
       setNotice("Tema ir žinutė yra privalomi.");
       return;
     }
+    messageInFlight.current = true;
     setSending(true);
     setNotice("");
     try {
@@ -124,10 +126,11 @@ export function ActivityDetail({
       setMessageFormOpen(false);
       setSubject("");
       setMessage("");
-      setNotice("Žinutė išsiųsta organizatoriui.");
+      setNotice("Žinutė išsiųsta veiklos organizatoriui.");
     } catch {
       setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
     } finally {
+      messageInFlight.current = false;
       setSending(false);
     }
   }
@@ -238,7 +241,7 @@ export function ActivityDetail({
           )}
         </div>
         {!cancelled && !signedIn && available > 0 && <p className="activity-note">Norint rezervuoti vietą reikia prisijungti.</p>}
-        {signedIn && !isOwner && !cancelled && (
+        {signedIn && !isOwner && (
           <div className="activity-message-actions">
             {!messageFormOpen ? (
               <button type="button" className="button button-outline" onClick={() => setMessageFormOpen(true)}>Parašyti organizatoriui</button>
@@ -249,7 +252,7 @@ export function ActivityDetail({
                 <label htmlFor="message-body">Žinutė</label>
                 <textarea id="message-body" rows={5} value={message} onChange={(event) => setMessage(event.target.value)} required maxLength={2000} disabled={sending} />
                 <div className="confirmation-actions">
-                  <button type="submit" disabled={sending}>{sending ? "Siunčiama..." : "Siųsti žinutę"}</button>
+                  <button type="submit" disabled={sending}>{sending ? "Siunčiama..." : "Siųsti"}</button>
                   <button type="button" className="button button-outline" onClick={() => { setMessageFormOpen(false); setSubject(""); setMessage(""); }} disabled={sending}>Atšaukti</button>
                 </div>
               </form>

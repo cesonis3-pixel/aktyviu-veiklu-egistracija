@@ -23,6 +23,74 @@ function load(relativePath, mocks = {}) {
   return compiledModule.exports;
 }
 
+function messaging({ user = { id: "sender" }, error = null } = {}) {
+  const calls = [];
+  const { POST } = load("../app/api/messages/route.ts", {
+    "next/server": { NextResponse },
+    "@/lib/supabase/server": { createClient: async () => ({
+      auth: { getUser: async () => ({ data: { user } }) },
+      rpc: async (...args) => { calls.push(args); return { data: { success: true }, error }; },
+    }) },
+  });
+  return { calls, send: body => POST(new Request("http://localhost/api/messages", {
+    method: "POST", body: JSON.stringify(body),
+  })) };
+}
+const messageBody = { activityId: "3e9e0b88-a653-4d37-8f48-6faabf12a866", subject: " Tema ", message: " Žinutė " };
+
+for (const [name, whitespace] of [["spaces", "   "], ["tabs", "\t\t"], ["line breaks", "\n\r\n"], ["mixed whitespace", " \t\n\r "]]) {
+  test(`message API rejects ${name} in subject and message`, async () => {
+    for (const field of ["subject", "message"]) {
+      const api = messaging();
+      assert.equal((await api.send({ ...messageBody, [field]: whitespace })).status, 400);
+      assert.equal(api.calls.length, 0);
+    }
+  });
+}
+
+test("SQL migration and schema retain identical RPC whitespace guards and length limits", () => {
+  const migration = readFileSync(new URL("../supabase/migrations/20260915_activity_messages.sql", import.meta.url), "utf8");
+  const schema = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
+  const start = "create or replace function public.send_activity_message(";
+  const rpc = sql => sql.slice(sql.indexOf(start), sql.indexOf("$$;", sql.indexOf(start)) + 3).replaceAll("\r\n", "\n");
+  assert.equal(rpc(migration), rpc(schema));
+  for (const [field, limit] of [["subject", 120], ["message", 2000]]) {
+    assert.ok(rpc(migration).includes(`regexp_replace(coalesce(p_${field}, ''), '\\s', '', 'g') = ''`));
+    assert.ok(rpc(migration).includes(`char_length(btrim(coalesce(p_${field}, ''))) not between 1 and ${limit}`));
+  }
+});
+
+test("message API passes only activity, subject and message to RPC", async () => {
+  const api = messaging();
+  assert.equal((await api.send(messageBody)).status, 200);
+  assert.deepEqual(api.calls, [["send_activity_message", {
+    p_activity_id: messageBody.activityId, p_subject: "Tema", p_message: "Žinutė",
+  }]]);
+});
+test("message API rejects client supplied sender or recipient", async () => {
+  for (const field of ["sender_id", "recipient_id", "senderId", "recipientId"]) {
+    const api = messaging();
+    assert.equal((await api.send({ ...messageBody, [field]: "someone" })).status, 400);
+    assert.equal(api.calls.length, 0);
+  }
+});
+test("message API requires authentication and nonempty bounded content", async () => {
+  assert.equal((await messaging({ user: null }).send(messageBody)).status, 401);
+  for (const body of [null, { ...messageBody, message: " " }, { ...messageBody, subject: "" },
+    { ...messageBody, message: "x".repeat(2001) }, { ...messageBody, subject: "x".repeat(121) },
+    { ...messageBody, activityId: "bad-id" }]) {
+    const api = messaging();
+    assert.equal((await api.send(body)).status, 400);
+    assert.equal(api.calls.length, 0);
+  }
+});
+test("message API reports DB rejection for self messaging and missing activity", async () => {
+  const response = await messaging({ error: { code: "P0020" } }).send(messageBody);
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, "Negalite siųsti žinutės sau.");
+  assert.equal((await messaging({ error: { code: "P0002" } }).send(messageBody)).status, 404);
+});
+
 test("create route requires organizer_name and rejects empty strings", async () => {
   const calls = [];
   const client = {
