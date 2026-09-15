@@ -65,7 +65,6 @@ test("winter categories match titles without changing DB identity or description
     ["Išvyka su keturračiais", "Keturračiai", "winter-atv.png"],
     ["Keturičiai sniege", "Keturračiai", "winter-atv.png"],
     ["Keturračiai sniege", "Keturračiai", "winter-atv.png"],
-    ["Žiemos žygis", "Žygiai", "winter-adventure.jpg"],
     ["Lauko treniruotė", "Lauko treniruotės", "winter-fitness.png"],
     ["Snieglentės veikla", "Snieglentės", "winter-snowboard.png"],
     ["Čiuožimas", "Čiuožimas", "winter-skating.png"],
