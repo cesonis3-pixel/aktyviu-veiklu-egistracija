@@ -37,7 +37,7 @@ export function getAuthErrorMessage(error: unknown): string {
     return "Pasiektas patvirtinimo laiškų siuntimo limitas. Jei paskyra jau sukurta, prisijunkite. Jei ne – bandykite vėliau.";
   }
   if (code === "over_request_rate_limit" || failure.status === 429) {
-    return "Pasiektas patvirtinimo laiškų siuntimo limitas. Jei paskyra jau sukurta, prisijunkite. Jei ne – bandykite vėliau.";
+    return "Per daug užklausų. Palaukite ir bandykite dar kartą.";
   }
   if (
     code === "email_address_not_authorized" ||
