@@ -1,10 +1,11 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import type { Activity } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 
 export function ActivityCard({ activity }: { activity: Activity }) {
+  const isReserved = activity.isReserved;
   const available = activity.available;
   const href = `/activities/${activity.id}`;
   return (
@@ -43,14 +44,20 @@ export function ActivityCard({ activity }: { activity: Activity }) {
         <div className={`availability ${available === 0 ? "is-full" : ""}`}>
           <Icon name="users" />
           <span>
-            Laisvų vietų: {available} iš {activity.capacity}
+            {isReserved
+              ? "Vieta rezervuota"
+              : `Laisvų vietų: ${available} iš ${activity.capacity}`}
           </span>
         </div>
         <div className="card-actions">
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          {available > 0 ? (
+          {isReserved ? (
+            <Link className="button" href={`${href}#reservation`}>
+              Mano vieta
+            </Link>
+          ) : available > 0 ? (
             <Link className="button" href={`${href}#reservation`}>
               Registruotis
             </Link>

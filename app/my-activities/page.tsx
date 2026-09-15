@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { Activity } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "@/components/activity-card";
 import { Icon } from "@/components/icon";
 

@@ -22,6 +22,9 @@ export default async function Home() {
             <ActivityCard key={activity.id} activity={activity} />
           ))}
         </div>
+        <p className="activity-note">
+          Atrask, peržiūrėk ir rezervuok.
+        </p>
       </section>
       <section className="features-section" aria-labelledby="features-title">
         <div className="container">

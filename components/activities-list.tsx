@@ -1,6 +1,6 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import type { Activity } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
 import { Icon } from "./icon";
 
@@ -35,6 +35,9 @@ export function ActivitiesList({ activities }: { activities: Activity[] }) {
           Filtruoti
         </button>
       </form>
+      <p className="activity-note">
+        Atrask, peržiūrėk ir rezervuok.
+      </p>
       <p className="sr-only" role="status">
         Rasta veiklų: {filtered.length}
       </p>

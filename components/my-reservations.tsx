@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Activity } from "@/lib/demo-activities";
+import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
 import { Icon } from "./icon";
 export function MyReservations({
