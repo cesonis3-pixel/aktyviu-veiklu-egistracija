@@ -67,8 +67,8 @@ export default async function MyActivitiesPage() {
           <Icon name="plus" />
           <h2>Kol kas neturite veiklų</h2>
           <p>Prisijungusios paskyros sukurtos veiklos bus rodomos čia.</p>
-          <Link className="button" href="/activities">
-            Peržiūrėti veiklas
+          <Link className="button" href="/my-activities/new">
+            Sukurti veiklą
           </Link>
         </div>
       )}

@@ -391,6 +391,10 @@ p {
   color: #63788b;
   margin: 22px 0 0;
 }
+.activity-form-card textarea {
+  min-height: 120px;
+  resize: vertical;
+}
 .activity-confirmation {
   margin-top: 16px;
   padding: 18px;

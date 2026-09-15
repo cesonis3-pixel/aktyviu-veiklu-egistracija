@@ -99,6 +99,43 @@ as $$
 	order by a.starts_at asc;
 $$;
 
+create or replace function public.create_activity(
+	p_title text,
+	p_description text,
+	p_location text,
+	p_starts_at timestamptz,
+	p_capacity integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+	current_user_id uuid := auth.uid();
+	activity_id uuid;
+begin
+	if current_user_id is null then
+		raise exception 'Prisijunkite prie paskyros.' using errcode = 'P0001';
+	end if;
+	if btrim(coalesce(p_title, '')) = '' or btrim(coalesce(p_location, '')) = '' then
+		raise exception 'Pavadinimas ir vieta yra privalomi.' using errcode = 'P0010';
+	end if;
+	if p_starts_at <= now() then
+		raise exception 'Veiklos data ir laikas turi būti ateityje.' using errcode = 'P0011';
+	end if;
+	if p_capacity is null or p_capacity < 1 then
+		raise exception 'Vietų skaičius turi būti teigiamas.' using errcode = 'P0012';
+	end if;
+
+	insert into public.activities (creator_id, title, description, location, starts_at, capacity, status)
+	values (current_user_id, btrim(p_title), nullif(btrim(coalesce(p_description, '')), ''), btrim(p_location), p_starts_at, p_capacity)
+	returning id into activity_id;
+
+	return jsonb_build_object('success', true, 'id', activity_id, 'status', 'active');
+end;
+$$;
+
 create or replace function public.reserve_activity(p_activity_id uuid)
 returns jsonb
 language plpgsql
@@ -226,3 +263,5 @@ grant execute on function public.cancel_activity(uuid) to authenticated;
 
 
 grant execute on function public.get_public_activities() to anon, authenticated;
+revoke all on function public.create_activity(text, text, text, timestamptz, integer) from public, anon;
+grant execute on function public.create_activity(text, text, text, timestamptz, integer) to authenticated;
