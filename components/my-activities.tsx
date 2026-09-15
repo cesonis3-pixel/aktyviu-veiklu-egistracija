@@ -82,11 +82,10 @@ export function MyActivities({ activities, initialNotice = "" }: { activities: A
             <ActivityCard activity={activity} />
             {activity.status === "cancelled" ? (
               <p className="activity-note">Veikla atšaukta</p>
-            ) : (
+            ) : null}
               <div className="card-actions" style={{ marginTop: "0.5rem" }}>
                 <Link className="button button-outline" href={`/my-activities/${activity.id}/edit`}>Redaguoti</Link>
               </div>
-            )}
             {activity.status === "cancelled" ? null : confirmingId === activity.id ? (
               <div className="activity-confirmation" role="alertdialog" aria-labelledby={`cancel-title-${activity.id}`}>
                 <h2 id={`cancel-title-${activity.id}`}>Atšaukti veiklą?</h2>

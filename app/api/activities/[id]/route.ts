@@ -45,9 +45,6 @@ export async function PATCH(
     if (activity.creator_id !== user.id) {
       return NextResponse.json({ error: "Neturite teisės redaguoti šios veiklos." }, { status: 403 });
     }
-    if (activity.status === "cancelled") {
-      return NextResponse.json({ error: "Atšaukta veikla negali būti redaguojama." }, { status: 409 });
-    }
 
     const { data, error } = await supabase
       .from("activities")

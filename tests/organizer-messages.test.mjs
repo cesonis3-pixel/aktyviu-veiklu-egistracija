@@ -183,6 +183,49 @@ test("edit route validates future date and positive capacity before database acc
   assert.equal(databaseCalled, false);
 });
 
+for (const status of ["active", "cancelled"]) {
+  for (const own of [true, false]) {
+    test(`editing ${status} activity: ${own ? "owner preserves status and creator" : "other user is rejected"}`, async () => {
+      const row = { id: messageBody.activityId, creator_id: "owner", status };
+      const filters = [];
+      let updates = 0;
+      const client = {
+        auth: { getUser: async () => ({ data: { user: { id: own ? "owner" : "other" } } }) },
+        from: () => ({
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { ...row }, error: null }) }) }),
+          update: payload => {
+            updates++;
+            assert.deepEqual(Object.keys(payload).sort(), ["title", "description", "location", "starts_at", "capacity", "organizer_name"].sort());
+            const query = {
+              eq: (field, value) => { filters.push([field, value]); return query; },
+              select: async () => { Object.assign(row, payload); return { data: [{ id: row.id }], error: null }; },
+            };
+            return query;
+          },
+        }),
+      };
+      const { PATCH } = load("../app/api/activities/[id]/route.ts", {
+        "next/server": { NextResponse }, "@/lib/supabase/server": { createClient: async () => client },
+      });
+      const response = await PATCH(new Request("http://localhost", {
+        method: "PATCH", body: JSON.stringify({
+          title: "Pakeistas pavadinimas", description: "Naujas aprašymas", location: "Trakai",
+          startsAt: "2100-01-01T10:00:00Z", capacity: 8, organizer_name: "Organizatorius",
+          creator_id: "attacker", status: "active",
+        }),
+      }), { params: Promise.resolve({ id: row.id }) });
+      assert.equal(response.status, own ? 200 : 403);
+      assert.equal(updates, own ? 1 : 0);
+      assert.equal(row.status, status);
+      assert.equal(row.creator_id, "owner");
+      if (own) {
+        assert.equal(row.title, "Pakeistas pavadinimas");
+        assert.deepEqual(filters, [["id", row.id], ["creator_id", "owner"]]);
+      }
+    });
+  }
+}
+
 test("public activity uses organizer_name when available", () => {
   const { toActivity } = load("../lib/activities.ts", { "./supabase/server": {} });
   const result = toActivity({
