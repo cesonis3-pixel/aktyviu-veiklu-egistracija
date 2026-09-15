@@ -12,7 +12,12 @@ type ActivityRow = {
   available: number;
 };
 
-const presentation: Partial<Record<string, Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>> = {
+const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>>> = {
+  "Slidinėjimo treniruotė": {
+    "category": "Slidinėjimas",
+    "image": "/images/ski-tour.jpg",
+    "imageAlt": "Slidininkų grupė snieguotame miške"
+  },
   "Slidinėjimo išvyka": {
     "category": "Slidinėjimas",
     "organizer": "Povilas",

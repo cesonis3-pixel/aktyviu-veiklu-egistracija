@@ -122,3 +122,72 @@ Tai kitas veiksmas; `cancel_activity()` DELETE nevykdo.
 Papildoma migracija šiam dokumentavimo darbui nesukurta. Prieš rankinius bandymus
 projekto savininkams reikia patikrinti, kurios esamos migracijos jau pritaikytos;
 šiame darbe SQL, Git commit, push, pull ir merge nevykdyti.
+
+## v1.1 production patikra
+
+### PRIEŠ PUSH
+
+- [ ] Supabase patikrinti, kad yra bent viena veikla su rezervacija.
+- [ ] Užsirašyti veiklos pavadinimą, UUID, rezervacijos UUID ir rezervacijos būseną.
+- [ ] Patikrinti, kad esamas Vercel projektas naudoja tą patį Supabase projektą ir dabartinius aplinkos kintamuosius.
+- [ ] Patikrinti Vercel Build / Install komandų nustatymus: juose neturi būti DB reset, seed ar automatinio SQL paleidimo.
+
+### PO VERCEL DEPLOY
+
+- [ ] Atidaryti tą patį Vercel adresą.
+- [ ] Patikrinti, kad sena veikla vis dar egzistuoja su tuo pačiu UUID.
+- [ ] Patikrinti, kad sena rezervacija neišnyko ir jos būsena nepakito dėl deploy.
+- [ ] Prisijungti prie esamos paskyros.
+- [ ] Rezervuoti laisvą vietą aktyvioje veikloje.
+- [ ] Atšaukti savo rezervaciją.
+- [ ] Patikrinti, kad vieta grįžo; perkrauti puslapį ir patikrinti „Mano rezervacijos“.
+- [ ] Organizatoriui atšaukti savo veiklą, pasirinktą šiam rankiniam bandymui.
+- [ ] Dalyviui patikrinti „Veikla atšaukta“, senos rezervacijos išlikimą ir negalėjimą rezervuoti iš naujo.
+- [ ] Patikrinti „Mano veiklos“, veiklų sąrašą ir detales.
+- [ ] Patikrinti, kad „Slidinėjimo treniruotė“ rodoma kaip „Slidinėjimas“ su slidininkų žiemos nuotrauka; pavadinimas nepakeistas į „Irklavimo pamoka“.
+- [ ] Patikrinti atsijungimą ir registraciją su testavimui pasirinkta paskyra, jei reikia – el. pašto patvirtinimą.
+
+### VERCEL
+
+- [ ] Deployment istorijoje rasti naujausią deployment ir patikrinti jo būseną.
+- [ ] Patikrinti, kuris GitHub commit jį sukūrė, ir užsirašyti commit SHA bei deployment adresą.
+
+Ši atmintinė dar neatlikta: **Reikia patikrinti rankiniu būdu.** V1.1 rengimo metu
+esami Supabase duomenys nekeisti, nauji projektai nekurti, deploy ir Git veiksmai neatlikti.
+
+### Duomenų išlikimo ir funkcijų peržiūra
+
+- `package.json` build yra tik `next build`; nėra prebuild, postbuild ar postinstall DB komandų.
+  `next.config.ts` neturi DB kūrimo ar reset veiksmų. Projekte nerasta atskiro Vercel
+  konfigūracijos failo ar GitHub Actions workflow, kuris automatiškai vykdytų SQL.
+- Rastas senas rankinis `supabase/seed-activities.sql`, kuriame buvo visų activities
+  DELETE (rezervacijos būtų ištrintos per FK CASCADE). V1.1 jis pakeistas tik SELECT
+  užklausa. Failas nebuvo vykdytas. Automatinio naikinančio seed nerasta.
+- Esami migracijų ir testavimo SQL failai savaime nevykdomi per build. Jie nėra v1.1
+  deploy žingsnis. Nekartoti testinių duomenų įterpimo migracijų veikiančioje DB vien dėl deploy.
+- Pagal projekto kodą įprastas deploy į tą patį Vercel projektą su tuo pačiu Supabase
+  ryšiu nekeičia activities, reservations ar vartotojų. Išoriniai Vercel nustatymai
+  šiame darbe netikrinti; duomenų išlikimą patvirtina aukščiau pateikta rankinė patikra.
+- Peržiūrėti registracijos `signUp`, prisijungimo `signInWithPassword`, callback ir
+  atsijungimo `signOut` srautai; veiklų sąrašas, UUID detalės, „Mano rezervacijos“ ir
+  „Mano veiklos“ skaito esamus Supabase duomenis. Rezervavimo / atšaukimo API naudoja
+  esamus RPC; vietos skaičiuojamos iš aktyvių rezervacijų. SQL užraktas, statuso ir
+  savininko patikros išlieka. Organizatoriaus atšaukimas keičia statusą, netrina įrašų.
+- V1.1 pridėtas „Slidinėjimo treniruotė“ atvaizdavimo priskyrimas kategorijai
+  „Slidinėjimas“ ir esamai `/images/ski-tour.jpg` nuotraukai. DB pavadinimas ir ID nekeičiami.
+  Tai kodo peržiūra, ne naujas visų funkcijų bandymas gyvoje Vercel / Supabase aplinkoje.
+
+### V1.1 automatinių patikrų rezultatai
+
+2026-09-15 po v1.1 kodo pakeitimų iš naujo paleista:
+
+| Patikra | Rezultatas |
+| --- | --- |
+| `npm.cmd run typecheck` | Sėkminga, kodas 0. |
+| `npm.cmd run lint` | Sėkminga, kodas 0. |
+| `node --test tests/auth.test.mjs tests/reservations.test.mjs tests/cancelled-activities.test.mjs` | 18 iš 18 testų sėkmingi, 0 praleistų. `npm test` script projekte nėra. |
+| `npm.cmd run build` (po kitų patikrų) | Sėkmingas, kodas 0. |
+
+Kodas paruoštas naudotojo Commit ir Push į esamą repozitoriją. Prieš Push ir po
+Vercel deploy rankinės atmintinės punktai lieka neatlikti; automatinių testų
+ribos aprašytos ankstesnėse šio dokumento skiltyse.
