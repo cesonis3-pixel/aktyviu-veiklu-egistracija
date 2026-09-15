@@ -7,11 +7,11 @@ import { Icon } from "./icon";
 import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
 
-export function MyActivities({ activities }: { activities: Activity[] }) {
+export function MyActivities({ activities, initialNotice = "" }: { activities: Activity[]; initialNotice?: string }) {
   const router = useRouter();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const inFlight = useRef(false);

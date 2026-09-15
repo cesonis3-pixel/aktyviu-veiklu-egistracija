@@ -4,7 +4,12 @@ import { getActivities } from "@/lib/activities";
 import { MyActivities } from "@/components/my-activities";
 import { Icon } from "@/components/icon";
 
-export default async function MyActivitiesPage() {
+export default async function MyActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ updated?: string }>;
+}) {
+  const { updated } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -70,7 +75,7 @@ export default async function MyActivitiesPage() {
           <p>Patikrink Supabase ryšį ir bandyk dar kartą.</p>
         </div>
       ) : (
-        <MyActivities activities={activities} />
+        <MyActivities activities={activities} initialNotice={updated === "1" ? "Veikla atnaujinta" : ""} />
       )}
     </main>
   );

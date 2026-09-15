@@ -56,7 +56,7 @@ export function ActivityForm({
         setError(result.error ?? (isEdit ? "Nepavyko atnaujinti veiklos." : "Nepavyko sukurti veiklos."));
         return;
       }
-      router.push("/my-activities");
+      router.push(isEdit ? "/my-activities?updated=1" : "/my-activities");
       router.refresh();
     } catch {
       setError("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");

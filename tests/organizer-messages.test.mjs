@@ -48,13 +48,14 @@ test("create route requires organizer_name and rejects empty strings", async () 
 
 test("edit route only updates owned activity and blocks unauthorized requests", async () => {
   const calls = [];
+  let updatePayload;
   const client = {
     auth: { getUser: async () => ({ data: { user: { id: "owner-1" } } }) },
     from: () => ({
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "activity-1", creator_id: "owner-1", status: "active" }, error: null }) }) }),
-      update: () => ({
+      update: payload => { updatePayload = payload; return {
         eq: () => ({ eq: () => ({ select: async () => ({ data: [{ id: "activity-1" }], error: null }) }) }),
-      }),
+      }; },
     }),
     rpc: async (...args) => { calls.push(args); return { data: { success: true }, error: null }; },
   };
@@ -78,6 +79,35 @@ test("edit route only updates owned activity and blocks unauthorized requests", 
 
   assert.equal(response.status, 200);
   assert.equal(calls.length, 0);
+  assert.deepEqual(updatePayload, {
+    title: "Updated activity",
+    description: null,
+    location: "Kaunas",
+    starts_at: "2100-03-01T08:00:00.000Z",
+    capacity: 8,
+    organizer_name: "Snow Adventure LT",
+  });
+  assert.equal(updatePayload.creator_id, undefined);
+});
+
+test("edit route validates future date and positive capacity before database access", async () => {
+  let databaseCalled = false;
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: "owner-1" } } }) },
+    from: () => { databaseCalled = true; return {}; },
+  };
+  const { PATCH } = load("../app/api/activities/[id]/route.ts", {
+    "next/server": { NextResponse },
+    "@/lib/supabase/server": { createClient: async () => client },
+  });
+  const response = await PATCH(new Request("http://localhost/api/activities/3e9e0b88-a653-4d37-8f48-6faabf12a866", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Updated", location: "Kaunas", startsAt: "2020-01-01T10:00:00", capacity: 0, organizer_name: "Organizer" }),
+  }), { params: Promise.resolve({ id: "3e9e0b88-a653-4d37-8f48-6faabf12a866" }) });
+
+  assert.equal(response.status, 400);
+  assert.equal(databaseCalled, false);
 });
 
 test("public activity uses organizer_name when available", () => {
