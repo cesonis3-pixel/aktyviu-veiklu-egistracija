@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 
@@ -14,13 +14,17 @@ function reservationMessage(error: string) {
   return error || "Rezervacijos nepavyko pakeisti.";
 }
 
-export function ActivityDetail({ activity, signedIn }: { activity: Activity; signedIn: boolean }) {
+export function ActivityDetail({ activity, signedIn, isOwner = false }: { activity: Activity; signedIn: boolean; isOwner?: boolean }) {
   const router = useRouter();
   const [notice, setNotice] = useState("");
   const [reserved, setReserved] = useState(Boolean(activity.isReserved));
   const [available, setAvailable] = useState(activity.available);
   const [pending, setPending] = useState(false);
   const [refreshing, startTransition] = useTransition();
+  const [messageFormOpen, setMessageFormOpen] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const inFlight = useRef(false);
   const busy = pending || refreshing;
   const cancelled = activity.status === "cancelled";
@@ -53,9 +57,13 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
       });
       const result = (await response.json()) as { available?: number; error?: string };
       if (!response.ok) {
-        setNotice(reservationMessage(result.error ?? ""));
+        const message = reservationMessage(result.error ?? "");
+        setNotice(message);
         if (response.status === 401) router.push("/login");
-        if (response.status === 409) startTransition(() => router.refresh());
+        if (response.status === 409) {
+          setReserved(false);
+          startTransition(() => router.refresh());
+        }
         return;
       }
       if (method === "POST") {
@@ -73,6 +81,39 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
     } finally {
       inFlight.current = false;
       setPending(false);
+    }
+  }
+
+  async function sendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!signedIn || isOwner || sending) return;
+    const trimmedSubject = subject.trim();
+    const trimmedMessage = message.trim();
+    if (!trimmedSubject || !trimmedMessage) {
+      setNotice("Tema ir žinutė yra privalomi.");
+      return;
+    }
+    setSending(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityId: activity.id, subject: trimmedSubject, message: trimmedMessage }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setNotice(result.error ?? "Nepavyko išsiųsti žinutės.");
+        return;
+      }
+      setMessageFormOpen(false);
+      setSubject("");
+      setMessage("");
+      setNotice("Žinutė išsiųsta organizatoriui.");
+    } catch {
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -95,7 +136,7 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
           <section><h2>Apie veiklą</h2><p>{activity.description}</p></section>
           <aside className="organizer">
             <span className="organizer-avatar"><Icon name="user" /></span>
-            <div><span className="muted">Organizatorius</span><h2>{activity.organizer}</h2><p>Žiemos nuotykių entuziastas</p></div>
+            <div><span className="muted">Organizatorius</span><h2>{activity.organizer || "Organizatorius"}</h2><p>Žiemos nuotykių entuziastas</p></div>
           </aside>
         </div>
         <div className="reservation-panel" id="reservation">
@@ -116,6 +157,24 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
           )}
         </div>
         {!cancelled && !signedIn && available > 0 && <p className="activity-note">Norint rezervuoti vietą reikia prisijungti.</p>}
+        {signedIn && !isOwner && !cancelled && (
+          <div className="activity-message-actions">
+            {!messageFormOpen ? (
+              <button type="button" className="button button-outline" onClick={() => setMessageFormOpen(true)}>Parašyti organizatoriui</button>
+            ) : (
+              <form className="auth-form" onSubmit={sendMessage}>
+                <label htmlFor="message-subject">Tema</label>
+                <input id="message-subject" value={subject} onChange={(event) => setSubject(event.target.value)} required maxLength={120} disabled={sending} />
+                <label htmlFor="message-body">Žinutė</label>
+                <textarea id="message-body" rows={5} value={message} onChange={(event) => setMessage(event.target.value)} required maxLength={2000} disabled={sending} />
+                <div className="confirmation-actions">
+                  <button type="submit" disabled={sending}>{sending ? "Siunčiama..." : "Siųsti žinutę"}</button>
+                  <button type="button" className="button button-outline" onClick={() => { setMessageFormOpen(false); setSubject(""); setMessage(""); }} disabled={sending}>Atšaukti</button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
         <p role="status" className="reservation-notice">{notice}</p>
       </div>
     </article>

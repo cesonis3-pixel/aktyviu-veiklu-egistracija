@@ -16,12 +16,13 @@ export default async function ActivityPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const isOwner = Boolean(user && activity.creator_id && activity.creator_id === user.id);
   return (
     <main id="main-content" className="container page-section">
       <Link className="back-link" href="/activities">
         ← Grįžti į veiklas
       </Link>
-      <ActivityDetail activity={activity} signedIn={Boolean(user)} />
+      <ActivityDetail activity={activity} signedIn={Boolean(user)} isOwner={isOwner} />
     </main>
   );
 }

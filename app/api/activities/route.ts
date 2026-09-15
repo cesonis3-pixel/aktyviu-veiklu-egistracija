@@ -8,10 +8,11 @@ export async function POST(request: Request) {
   const location = typeof body?.location === "string" ? body.location.trim() : "";
   const startsAt = typeof body?.startsAt === "string" ? body.startsAt : "";
   const capacity = Number(body?.capacity);
+  const organizerName = typeof body?.organizer_name === "string" ? body.organizer_name.trim() : "";
 
-  if (!title || !location || !startsAt || !Number.isInteger(capacity) || capacity < 1) {
+  if (!title || !location || !startsAt || !Number.isInteger(capacity) || capacity < 1 || !organizerName) {
     return NextResponse.json(
-      { error: "Užpildykite pavadinimą, vietą, datą, laiką ir teigiamą vietų skaičių." },
+      { error: "Užpildykite pavadinimą, vietą, datą, laiką, organizatoriaus pavadinimą ir teigiamą vietų skaičių." },
       { status: 400 },
     );
   }
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     p_location: location,
     p_starts_at: startsAtDate.toISOString(),
     p_capacity: capacity,
+    p_organizer_name: organizerName,
   });
   if (error) {
     console.error("[activities] create_activity RPC failed", {

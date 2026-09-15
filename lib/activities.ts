@@ -3,6 +3,7 @@ import { createClient } from "./supabase/server";
 
 type ActivityRow = {
   id: string;
+  creator_id?: string;
   title: string;
   description: string | null;
   location: string;
@@ -10,6 +11,7 @@ type ActivityRow = {
   capacity: number;
   status: "active" | "cancelled";
   available: number;
+  organizer_name?: string | null;
 };
 
 const presentation: Partial<Record<string, Partial<Pick<Activity, "category" | "organizer" | "image" | "imageAlt">>>> = {
@@ -68,8 +70,10 @@ function thematicPresentation(title: string) {
 
 export function toActivity(row: ActivityRow): Activity {
   const date = new Date(row.starts_at);
+  const organizerName = row.organizer_name?.trim() || "Organizatorius";
   return {
     id: row.id,
+    creator_id: row.creator_id,
     title: row.title,
     category: "Aktyvus laisvalaikis",
     date: row.starts_at,
@@ -80,7 +84,8 @@ export function toActivity(row: ActivityRow): Activity {
       hour: "2-digit", minute: "2-digit", timeZone: "Europe/Vilnius",
     }).format(date),
     location: row.location,
-    organizer: "Organizatorius",
+    organizer: organizerName,
+    organizer_name: organizerName,
     capacity: row.capacity,
     available: row.available,
     status: row.status,
