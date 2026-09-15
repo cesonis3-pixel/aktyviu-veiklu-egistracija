@@ -1,39 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { Activity } from "@/lib/activity";
+import { getActivities } from "@/lib/activities";
 import { ActivityCard } from "@/components/activity-card";
 import { Icon } from "@/components/icon";
-
-function toActivity(row: {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string;
-  starts_at: string;
-  capacity: number;
-  status: string;
-  creator_id: string;
-}): Activity {
-  const date = new Date(row.starts_at);
-  return {
-    id: row.id,
-    title: row.title,
-    category: "Aktyvus laisvalaikis",
-    date: row.starts_at,
-    dateLabel: new Intl.DateTimeFormat("lt-LT", {
-      dateStyle: "long",
-      timeStyle: "short",
-      timeZone: "Europe/Vilnius",
-    }).format(date),
-    location: row.location,
-    organizer: "Tu",
-    capacity: row.capacity,
-    available: row.capacity,
-    image: "/images/winter-adventure.jpg",
-    imageAlt: "Žiemos aktyvios veiklos dalyviai",
-    description: row.description ?? "",
-  };
-}
 
 export default async function MyActivitiesPage() {
   const supabase = await createClient();
@@ -65,7 +34,10 @@ export default async function MyActivitiesPage() {
     );
   }
 
-  const activities = (data ?? []).map(toActivity);
+  const ownedIds = new Set((data ?? []).map(row => row.id));
+  const activities = user && !error
+    ? (await getActivities()).filter(activity => ownedIds.has(activity.id))
+    : [];
 
   return (
     <main id="main-content" className="container page-section">

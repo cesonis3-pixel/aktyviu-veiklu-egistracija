@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 
@@ -10,8 +10,8 @@ function reservationMessage(error: string) {
   if (error.includes("Vietų nebeliko") || error.includes("Laisvų vietų")) return "Vietų nebeliko.";
   if (error.includes("jau rezervavote") || error.includes("jau turite rezervaciją")) return "Jūs jau turite rezervaciją šiai veiklai";
   if (error.includes("nebepriima") || error.includes("atšaukta")) return "Ši veikla atšaukta";
-  if (error.includes("Prisijungimas")) return "Norint rezervuoti vietą reikia prisijungti.";
-  return error || "Rezervacijos nepavyko sukurti.";
+  if (error.includes("Prisijung")) return "Norint rezervuoti vietą reikia prisijungti.";
+  return error || "Rezervacijos nepavyko pakeisti.";
 }
 
 export function ActivityDetail({ activity, signedIn }: { activity: Activity; signedIn: boolean }) {
@@ -19,7 +19,10 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
   const [notice, setNotice] = useState("");
   const [reserved, setReserved] = useState(Boolean(activity.isReserved));
   const [available, setAvailable] = useState(activity.available);
-  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [refreshing, startTransition] = useTransition();
+  const inFlight = useRef(false);
+  const busy = pending || refreshing;
 
   useEffect(() => {
     if (!signedIn) return;
@@ -35,55 +38,39 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
     };
   }, [activity.id, signedIn]);
 
-  async function reserve() {
-    if (saving || reserved || available <= 0 || !signedIn) return;
-    setSaving(true);
+  async function changeReservation(method: "POST" | "DELETE") {
+    if (inFlight.current || busy || !signedIn) return;
+    if (method === "POST" && (reserved || available <= 0)) return;
+    inFlight.current = true;
+    setPending(true);
     setNotice("");
     try {
       const response = await fetch("/api/reservations", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activityId: activity.id }),
       });
-      const data = (await response.json()) as { available?: number; error?: string };
+      const result = (await response.json()) as { available?: number; error?: string };
       if (!response.ok) {
-        setNotice(reservationMessage(data.error ?? ""));
+        setNotice(reservationMessage(result.error ?? ""));
+        if (response.status === 401) router.push("/login");
         return;
       }
-      setReserved(true);
-      if (typeof data.available === "number") setAvailable(data.available);
-      setNotice("Vieta rezervuota");
-      router.refresh();
-    } catch {
-      setNotice("Rezervacijos nepavyko sukurti. Bandykite dar kartą.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function cancel() {
-    if (saving) return;
-    setSaving(true);
-    setNotice("");
-    try {
-      const response = await fetch("/api/reservations", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activityId: activity.id }),
-      });
-      const data = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setNotice(reservationMessage(data.error ?? ""));
-        return;
+      if (method === "POST") {
+        setReserved(true);
+        if (typeof result.available === "number") setAvailable(result.available);
+        setNotice("Vieta rezervuota");
+      } else {
+        setReserved(false);
+        setAvailable((current) => current + 1);
+        setNotice("Rezervacija atšaukta.");
       }
-      setReserved(false);
-      setAvailable((current) => current + 1);
-      setNotice("Rezervacija atšaukta.");
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
-      setNotice("Rezervacijos atšaukti nepavyko. Bandykite dar kartą.");
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
     } finally {
-      setSaving(false);
+      inFlight.current = false;
+      setPending(false);
     }
   }
 
@@ -115,11 +102,11 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
             <p>Rezervacija išsaugoma tavo paskyroje.</p>
           </div>
           {reserved ? (
-            <button type="button" className="button button-outline" onClick={cancel} disabled={saving}>{saving ? "Vykdoma..." : "Atšaukti rezervaciją"}</button>
+            <button type="button" className="button button-outline" disabled={busy} onClick={() => changeReservation("DELETE")}>{busy ? "Atšaukiama..." : "Atšaukti rezervaciją"}</button>
           ) : available === 0 ? (
             <button type="button" disabled>Pilna</button>
           ) : signedIn ? (
-            <button type="button" onClick={reserve} disabled={saving}>{saving ? "Rezervuojama..." : "Registruoti vietą"} <Icon name="arrow" /></button>
+            <button type="button" disabled={busy} onClick={() => changeReservation("POST")}>{busy ? "Rezervuojama..." : "Registruoti vietą"} <Icon name="arrow" /></button>
           ) : (
             <Link className="button" href="/login">Registruoti vietą <Icon name="arrow" /></Link>
           )}

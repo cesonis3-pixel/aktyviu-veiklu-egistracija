@@ -1,102 +1,23 @@
-create table if not exists public.activities (
-	id uuid primary key default gen_random_uuid(),
-	creator_id uuid not null references auth.users(id) on delete restrict,
-	title text not null check (btrim(title) <> ''),
-	description text,
-	location text not null check (btrim(location) <> ''),
-	starts_at timestamptz not null,
-	capacity integer not null check (capacity > 0),
-	status text not null default 'active'
-		check (status in ('active', 'cancelled')),
-	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now()
-);
+-- Vykdyti Supabase SQL Editor. Esami duomenys netrinami.
+begin;
 
-create index if not exists activities_creator_id_idx
-	on public.activities (creator_id);
-
-grant select on table public.activities to authenticated;
-
-alter table public.activities enable row level security;
-
-drop policy if exists "Users can read their own activities"
-	on public.activities;
-
-create policy "Users can read their own activities"
-	on public.activities
-	for select
-	to authenticated
-	using ((select auth.uid()) = creator_id);
-
-drop policy if exists "Anyone can read activities"
-	on public.activities;
-
-create policy "Anyone can read activities"
-	on public.activities
-	for select
-	to anon, authenticated
-	using (true);
-
-create table if not exists public.reservations (
-	id uuid primary key default gen_random_uuid(),
-	activity_id uuid not null references public.activities(id) on delete cascade,
-	user_id uuid not null references auth.users(id) on delete cascade,
-	status text not null default 'active'
-		check (status in ('active', 'cancelled')),
-	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now(),
-	cancelled_at timestamptz,
-	unique (activity_id, user_id)
-);
-
-create index if not exists reservations_user_id_idx
-	on public.reservations (user_id);
-
-create index if not exists reservations_activity_id_idx
-	on public.reservations (activity_id);
-
-grant select on table public.reservations to authenticated;
-
-alter table public.reservations enable row level security;
-
-drop policy if exists "Users can read their own reservations"
-	on public.reservations;
-
-create policy "Users can read their own reservations"
-	on public.reservations
-	for select
-	to authenticated
-	using ((select auth.uid()) = user_id);
-
-create or replace function public.get_public_activities()
-returns table (
-	id uuid,
-	title text,
-	description text,
-	location text,
-	starts_at timestamptz,
-	capacity integer,
-	status text,
-	available integer
-)
-language sql
-security definer
-set search_path = public
-as $$
-	select
-		a.id,
-		a.title,
-		a.description,
-		a.location,
-		a.starts_at,
-		a.capacity,
-		a.status,
-		(a.capacity - count(r.id)::integer) as available
-	from public.activities a
-	left join public.reservations r
-		on r.activity_id = a.id and r.status = 'active'
-	group by a.id
-	order by a.starts_at asc;
+-- Jei yra senų dublikatų, migracija sustos ir nieko nepakeis.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.reservations'::regclass
+      and contype in ('u', 'p')
+      and cardinality(conkey) = 2
+      and conkey @> array[
+        (select attnum from pg_attribute where attrelid = 'public.reservations'::regclass and attname = 'activity_id'),
+        (select attnum from pg_attribute where attrelid = 'public.reservations'::regclass and attname = 'user_id')
+      ]::smallint[]
+  ) then
+    alter table public.reservations
+      add constraint reservations_activity_user_unique unique (activity_id, user_id);
+  end if;
+end;
 $$;
 
 create or replace function public.reserve_activity(p_activity_id uuid)
@@ -185,5 +106,4 @@ revoke all on function public.cancel_reservation(uuid) from public, anon;
 grant execute on function public.reserve_activity(uuid) to authenticated;
 grant execute on function public.cancel_reservation(uuid) to authenticated;
 
-
-grant execute on function public.get_public_activities() to anon, authenticated;
+commit;
