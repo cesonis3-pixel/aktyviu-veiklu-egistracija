@@ -3,9 +3,10 @@ import { Hero } from "@/components/hero";
 import { ActivityCard } from "@/components/activity-card";
 import { FeatureCard } from "@/components/feature-card";
 import { Icon } from "@/components/icon";
-import { activities } from "@/lib/demo-activities";
+import { getActivities } from "@/lib/activities";
 
-export default function Home() {
+export default async function Home() {
+  const activities = await getActivities();
   return (
     <main id="main-content">
       <Hero />
@@ -21,9 +22,6 @@ export default function Home() {
             <ActivityCard key={activity.id} activity={activity} />
           ))}
         </div>
-        <p className="demo-note">
-          Demonstracinės veiklos · atrask, peržiūrėk ir išbandyk.
-        </p>
       </section>
       <section className="features-section" aria-labelledby="features-title">
         <div className="container">

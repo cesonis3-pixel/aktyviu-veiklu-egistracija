@@ -1,25 +1,82 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Activity } from "@/lib/demo-activities";
 import { Icon } from "./icon";
-import { useDemoReservations } from "./demo-reservations";
 
-export function ActivityDetail({ activity }: { activity: Activity }) {
-  const { signedIn, reserved, toggle } = useDemoReservations();
+function reservationMessage(error: string) {
+  if (error.includes("Vietų nebeliko") || error.includes("Laisvų vietų")) return "Vietų nebeliko.";
+  if (error.includes("jau rezervavote")) return "Jūs jau turite rezervaciją šiai veiklai";
+  if (error.includes("nebepriima") || error.includes("atšaukta")) return "Ši veikla atšaukta";
+  if (error.includes("Prisijungimas")) return "Norint rezervuoti vietą reikia prisijungti.";
+  return error || "Rezervacijos nepavyko sukurti.";
+}
+
+export function ActivityDetail({ activity, signedIn }: { activity: Activity; signedIn: boolean }) {
   const [notice, setNotice] = useState("");
-  const isReserved = reserved.includes(activity.id);
-  const available = activity.available - (isReserved ? 1 : 0);
-  function reserve() {
-    if (!isReserved && available <= 0) return;
+  const [reserved, setReserved] = useState(false);
+  const [available, setAvailable] = useState(activity.available);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
     if (!signedIn) return;
-    toggle(activity.id);
-    setNotice(
-      isReserved
-        ? "Demonstracinė rezervacija atšaukta. Vieta vėl laisva."
-        : "Vieta pažymėta demonstracijoje. Tikra rezervacija nesukurta.",
-    );
+    let active = true;
+    fetch(`/api/reservations?activityId=${encodeURIComponent(activity.id)}`)
+      .then((response) => response.json())
+      .then((data: { reserved?: boolean }) => {
+        if (active) setReserved(Boolean(data.reserved));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [activity.id, signedIn]);
+
+  async function reserve() {
+    if (saving || reserved || available <= 0 || !signedIn) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityId: activity.id }),
+      });
+      const data = (await response.json()) as { available?: number; error?: string };
+      if (!response.ok) {
+        setNotice(reservationMessage(data.error ?? ""));
+        return;
+      }
+      setReserved(true);
+      if (typeof data.available === "number") setAvailable(data.available);
+      setNotice("Vieta rezervuota");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function cancel() {
+    if (saving) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/reservations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityId: activity.id }),
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setNotice(reservationMessage(data.error ?? ""));
+        return;
+      }
+      setReserved(false);
+      setAvailable((current) => current + 1);
+      setNotice("Rezervacija atšaukta.");
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <article className="detail-card">
@@ -69,29 +126,30 @@ export function ActivityDetail({ activity }: { activity: Activity }) {
         <div className="reservation-panel" id="reservation">
           <div>
             <h2>
-              {isReserved
-                ? "Tavo vieta pažymėta"
+              {reserved
+                ? "Tavo vieta rezervuota"
                 : available > 0
                   ? "Prisijunk prie nuotykio"
                   : "Visos vietos užimtos"}
             </h2>
-            <p>Demonstracija: pakeitimai galioja iki puslapio perkrovimo.</p>
+            <p>Rezervacija išsaugoma tavo paskyroje.</p>
           </div>
-          {isReserved ? (
+          {reserved ? (
             <button
               type="button"
               className="button button-outline"
-              onClick={reserve}
+              onClick={cancel}
+              disabled={saving}
             >
-              Atšaukti rezervaciją
+              {saving ? "Vykdoma..." : "Atšaukti rezervaciją"}
             </button>
           ) : available === 0 ? (
             <button type="button" disabled>
               Pilna
             </button>
           ) : signedIn ? (
-            <button type="button" onClick={reserve}>
-              Registruoti vietą <Icon name="arrow" />
+            <button type="button" onClick={reserve} disabled={saving}>
+              {saving ? "Rezervuojama..." : "Registruoti vietą"} <Icon name="arrow" />
             </button>
           ) : (
             <Link className="button" href="/login">
@@ -100,9 +158,7 @@ export function ActivityDetail({ activity }: { activity: Activity }) {
           )}
         </div>
         {!signedIn && available > 0 && (
-          <p className="demo-note">
-            Norėdamas išbandyti rezervavimą, prisijunk prie paskyros.
-          </p>
+          <p className="demo-note">Norint rezervuoti vietą reikia prisijungti.</p>
         )}
         <p role="status" className="reservation-notice">
           {notice}

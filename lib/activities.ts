@@ -27,6 +27,7 @@ export function toActivity(row: ActivityRow): Activity {
     organizer: "Organizatorius",
     capacity: row.capacity,
     available: row.available,
+    status: row.status,
     image: "/images/winter-adventure.jpg",
     imageAlt: "Žiemos aktyvios veiklos dalyviai",
     description: row.description ?? "",

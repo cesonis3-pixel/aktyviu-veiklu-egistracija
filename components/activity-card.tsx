@@ -3,12 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Activity } from "@/lib/demo-activities";
 import { Icon } from "./icon";
-import { useDemoReservations } from "./demo-reservations";
 
 export function ActivityCard({ activity }: { activity: Activity }) {
-  const { reserved } = useDemoReservations();
-  const isReserved = reserved.includes(activity.id);
-  const available = activity.available - (isReserved ? 1 : 0);
+  const available = activity.available;
   const href = `/activities/${activity.id}`;
   return (
     <article className="activity-card">
@@ -46,20 +43,14 @@ export function ActivityCard({ activity }: { activity: Activity }) {
         <div className={`availability ${available === 0 ? "is-full" : ""}`}>
           <Icon name="users" />
           <span>
-            {isReserved
-              ? "Vieta rezervuota (demonstracija)"
-              : `Laisvų vietų: ${available} iš ${activity.capacity}`}
+            Laisvų vietų: {available} iš {activity.capacity}
           </span>
         </div>
         <div className="card-actions">
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          {isReserved ? (
-            <Link className="button" href={`${href}#reservation`}>
-              Mano vieta
-            </Link>
-          ) : available > 0 ? (
+          {available > 0 ? (
             <Link className="button" href={`${href}#reservation`}>
               Registruotis
             </Link>

@@ -35,9 +35,6 @@ export function ActivitiesList({ activities }: { activities: Activity[] }) {
           Filtruoti
         </button>
       </form>
-      <p className="demo-note">
-        Demonstracinės veiklos · tikros rezervacijos kol kas nevykdomos.
-      </p>
       <p className="sr-only" role="status">
         Rasta veiklų: {filtered.length}
       </p>
