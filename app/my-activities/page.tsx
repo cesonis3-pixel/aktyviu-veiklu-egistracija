@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getActivities } from "@/lib/activities";
-import { ActivityCard } from "@/components/activity-card";
+import { MyActivities } from "@/components/my-activities";
 import { Icon } from "@/components/icon";
 
 export default async function MyActivitiesPage() {
@@ -61,11 +61,7 @@ export default async function MyActivitiesPage() {
           <p>Patikrink Supabase ryšį ir bandyk dar kartą.</p>
         </div>
       ) : activities.length ? (
-        <div className="activity-grid">
-          {activities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
-          ))}
-        </div>
+        <MyActivities activities={activities} />
       ) : (
         <div className="empty-state">
           <Icon name="plus" />

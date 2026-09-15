@@ -178,12 +178,51 @@ begin
 end;
 $$;
 
+create or replace function public.cancel_activity(p_activity_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+	current_user_id uuid := auth.uid();
+	activity_row public.activities%rowtype;
+begin
+	if current_user_id is null then
+		raise exception 'Prisijunkite prie paskyros.' using errcode = 'P0001';
+	end if;
+
+	select * into activity_row
+	from public.activities
+	where id = p_activity_id
+	for update;
+
+	if not found then
+		raise exception 'Veikla nerasta.' using errcode = 'P0002';
+	end if;
+	if activity_row.creator_id <> current_user_id then
+		raise exception 'Neturite teisės atšaukti šios veiklos.' using errcode = 'P0008';
+	end if;
+	if activity_row.status = 'cancelled' then
+		raise exception 'Ši veikla jau atšaukta.' using errcode = 'P0009';
+	end if;
+
+	update public.activities
+	set status = 'cancelled', updated_at = now()
+	where id = p_activity_id and creator_id = current_user_id and status = 'active';
+
+	return jsonb_build_object('success', true, 'status', 'cancelled');
+end;
+$$;
+
 -- Įrašai keičiami tik per funkcijas, kurios pačios tikrina auth.uid().
 revoke insert, update, delete on public.reservations from public, anon, authenticated;
 revoke all on function public.reserve_activity(uuid) from public, anon;
 revoke all on function public.cancel_reservation(uuid) from public, anon;
 grant execute on function public.reserve_activity(uuid) to authenticated;
 grant execute on function public.cancel_reservation(uuid) to authenticated;
+revoke all on function public.cancel_activity(uuid) from public, anon;
+grant execute on function public.cancel_activity(uuid) to authenticated;
 
 
 grant execute on function public.get_public_activities() to anon, authenticated;

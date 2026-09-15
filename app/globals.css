@@ -391,6 +391,27 @@ p {
   color: #63788b;
   margin: 22px 0 0;
 }
+.activity-confirmation {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #c6d5e0;
+  border-radius: 7px;
+  background: #eef7fc;
+}
+.activity-confirmation h2 {
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+.activity-confirmation p {
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.confirmation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 .features-section {
   padding: 62px 0 76px;
   background: #eaf3f9;
