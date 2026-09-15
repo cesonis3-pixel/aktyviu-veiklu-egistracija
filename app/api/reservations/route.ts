@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { reservationError } from "@/lib/reservation-errors";
 
 export async function GET(request: Request) {
   const activityId = new URL(request.url).searchParams.get("activityId");
@@ -24,35 +25,31 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { activityId?: string };
-  if (!body.activityId) {
-    return NextResponse.json({ error: "Trūksta veiklos ID." }, { status: 400 });
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reserve_activity", {
-    p_activity_id: body.activityId,
-  });
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json(data);
+  return changeReservation(request, "reserve_activity");
 }
 
 export async function DELETE(request: Request) {
-  const body = (await request.json()) as { activityId?: string };
-  if (!body.activityId) {
-    return NextResponse.json({ error: "Trūksta veiklos ID." }, { status: 400 });
-  }
+  return changeReservation(request, "cancel_reservation");
+}
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("cancel_reservation", {
-    p_activity_id: body.activityId,
-  });
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+async function changeReservation(request: Request, action: "reserve_activity" | "cancel_reservation") {
+  const body = await request.json().catch(() => null);
+  if (typeof body?.activityId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.activityId)) {
+    return NextResponse.json({ error: "Neteisingas veiklos ID." }, { status: 400 });
   }
-
-  return NextResponse.json(data);
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Prisijunkite prie paskyros." }, { status: 401 });
+    const { data, error } = await supabase.rpc(action, { p_activity_id: body.activityId });
+    if (error) {
+      const mapped = reservationError(error.code);
+      return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+    }
+    return NextResponse.json(data);
+  } catch {
+    const mapped = reservationError();
+    return NextResponse.json({ error: mapped.message }, { status: mapped.status });
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 import { useRouter } from "next/navigation";
@@ -10,10 +10,14 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
   const router = useRouter();
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
+  const [refreshing, startTransition] = useTransition();
+  const inFlight = useRef(false);
+  const busy = pending || refreshing;
   const isReserved = activity.isReserved;
   const available = activity.available;
   async function reserve() {
-    if (pending || !signedIn || (!isReserved && available <= 0)) return;
+    if (inFlight.current || busy || !signedIn || (!isReserved && available <= 0)) return;
+    inFlight.current = true;
     setPending(true);
     setNotice("");
     try {
@@ -23,12 +27,18 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
         body: JSON.stringify({ activityId: activity.id }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Nepavyko pakeisti rezervacijos.");
+      if (!response.ok) {
+        setNotice(result.error ?? "Nepavyko pakeisti rezervacijos. Bandykite dar kartą.");
+        if (response.status === 401) router.push("/login");
+        if (response.status === 409) startTransition(() => router.refresh());
+        return;
+      }
       setNotice(isReserved ? "Rezervacija atšaukta." : "Vieta rezervuota.");
-      router.refresh();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Nepavyko pakeisti rezervacijos.");
+      startTransition(() => router.refresh());
+    } catch {
+      setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }
@@ -92,19 +102,19 @@ export function ActivityDetail({ activity, signedIn }: { activity: Activity; sig
             <button
               type="button"
               className="button button-outline"
-              disabled={pending}
+              disabled={busy}
               onClick={reserve}
             >
-              Atšaukti rezervaciją
+              {busy ? "Atšaukiama..." : "Atšaukti rezervaciją"}
             </button>
           ) : available === 0 ? (
             <button type="button" disabled>
               Pilna
             </button>
           ) : signedIn ? (
-            <button type="button" disabled={pending}
+            <button type="button" disabled={busy}
               onClick={reserve}>
-              Registruoti vietą <Icon name="arrow" />
+              {busy ? "Rezervuojama..." : "Registruoti vietą"} <Icon name="arrow" />
             </button>
           ) : (
             <Link className="button" href="/login">
