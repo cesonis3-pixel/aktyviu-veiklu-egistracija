@@ -130,12 +130,15 @@ test("reply API translates DB errors without exposing database details", async (
   }
 });
 test("participant messages page renders the real DB reply and only received messages offer replies", async () => {
+  const { ReplyMessage } = load("../components/reply-message.tsx", {
+    "next/navigation": { useRouter: () => ({ refresh() {} }) },
+  });
   for (const user of [participant, organizer]) {
     const rows = (await asUser(user, () => db.query("select * from activity_messages order by created_at desc"))).rows;
     const { default: Page } = load("../app/messages/page.tsx", {
       "next/link": { __esModule: true, default: ({ children, ...props }) => React.createElement("a", props, children) },
       "next/navigation": { redirect: () => { throw new Error("Unexpected redirect"); } },
-      "@/components/reply-message": { ReplyMessage: ({ messageId }) => React.createElement("button", { "data-reply": messageId }, "Atsakyti") },
+      "@/components/reply-message": { ReplyMessage },
       "@/lib/supabase/server": { createClient: async () => ({
         auth: { getUser: async () => ({ data: { user: { id: user } } }) },
         from: table => ({ select: () => table === "profiles" ? Promise.resolve({ data: [] }) : ({
@@ -149,7 +152,12 @@ test("participant messages page renders the real DB reply and only received mess
     assert.match(html, /Susitinkame ryte/);
     assert.match(html, /Dalyvio klausimas/);
     assert.match(html, /Atsakymas į žinutę/);
-    for (const row of rows) assert.equal(html.includes(`data-reply="${row.id}"`), row.recipient_id === user);
+    for (const row of rows) assert.equal(html.includes(`aria-controls="reply-${row.id}"`), row.recipient_id === user);
+    const receivedHtml = html.split('aria-label="Gautos"')[1].split("</section>")[0];
+    const sentHtml = html.split('aria-label="Išsiųstos"')[1].split("</section>")[0];
+    assert.equal((receivedHtml.match(/>Atsakyti<\/button>/g) ?? []).length,
+      rows.filter(row => row.recipient_id === user).length);
+    assert.doesNotMatch(sentHtml, />Atsakyti<\/button>/);
   }
 });
 test("schema includes exactly the same reply RPC as the migration", () => {

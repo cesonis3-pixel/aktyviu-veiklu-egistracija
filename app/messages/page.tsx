@@ -81,7 +81,7 @@ export default async function MessagesPage() {
                   <p><strong>Gavėjas:</strong> {recipientName}</p>
                   <p style={{ whiteSpace: "pre-wrap" }}>{message.message}</p>
                   <p><small>{new Date(message.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius" })}</small></p>
-                  {message.recipient_id === user.id && message.sender_id !== user.id &&
+                  {section === "Gautos" && message.recipient_id === user.id &&
                     <ReplyMessage messageId={message.id} subject={message.subject} />}
                 </div>
               </article>
