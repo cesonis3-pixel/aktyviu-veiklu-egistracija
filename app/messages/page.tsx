@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ReplyMessage } from "@/components/reply-message";
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -73,12 +74,15 @@ export default async function MessagesPage() {
               <article key={message.id} className="activity-card">
                 <div className="activity-body">
                   <h3>{message.subject}</h3>
+                  {/^Re:/i.test(message.subject) && <p>Atsakymas į žinutę</p>}
                   <p>{message.recipient_id === user.id ? "Gauta žinutė" : "Išsiųsta žinutė"}</p>
                   <p><strong>Veikla:</strong> {message.activity_id ? <Link href={`/activities/${message.activity_id}`}>{activityTitle}</Link> : "Veikla ištrinta"}</p>
                   <p><strong>Siuntėjas:</strong> {senderName}</p>
                   <p><strong>Gavėjas:</strong> {recipientName}</p>
                   <p style={{ whiteSpace: "pre-wrap" }}>{message.message}</p>
                   <p><small>{new Date(message.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius" })}</small></p>
+                  {message.recipient_id === user.id && message.sender_id !== user.id &&
+                    <ReplyMessage messageId={message.id} subject={message.subject} />}
                 </div>
               </article>
             );
