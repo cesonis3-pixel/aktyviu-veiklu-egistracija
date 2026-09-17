@@ -62,13 +62,18 @@ test("winter categories match titles without changing DB identity or description
   const { toActivity } = load("../lib/activities.ts", { "./supabase/server": {} });
   for (const [title, category, filename] of [
     ["Slidinėjimo treniruotė", "Slidinėjimas", "ski-tour.jpg"],
+    ["Slidinėjimas", "Slidinėjimas", "ski-tour.jpg"],
     ["Išvyka su keturračiais", "Keturračiai", "winter-atv.png"],
     ["Keturičiai sniege", "Keturračiai", "winter-atv.png"],
     ["Keturračiai sniege", "Keturračiai", "winter-atv.png"],
     ["Lauko treniruotė", "Lauko treniruotės", "winter-fitness.png"],
     ["Snieglentės veikla", "Snieglentės", "winter-snowboard.png"],
+    ["Snieglenčių išvyka", "Snieglentės", "winter-snowboard.png"],
+    ["Snowboard trip", "Snieglentės", "winter-snowboard.png"],
     ["Čiuožimas", "Čiuožimas", "winter-skating.png"],
     ["Rogutės", "Rogutės", "winter-sledding.png"],
+    ["Sled adventure", "Rogutės", "winter-sledding.png"],
+    ["Slidinėjimas Druskininkuose", "Slidinėjimas", "ski-tour.jpg"],
   ]) {
     const result = toActivity({ id, title, description: "Organizatoriaus aprašymas", starts_at: "2027-01-23T11:00:00+02:00", capacity: 5, available: 3, status: "active", location: "Trakai" });
     assert.equal(result.id, id);
@@ -78,4 +83,13 @@ test("winter categories match titles without changing DB identity or description
     assert.equal(result.image, `/images/${filename}`);
     assert.ok(existsSync(new URL(`../public/images/${filename}`, import.meta.url)));
   }
+});
+
+test("unknown activity title uses the neutral title-based fallback image", () => {
+  const { getActivityImage } = load("../lib/activities.ts", { "./supabase/server": {} });
+  assert.deepEqual(getActivityImage("Nežinoma veikla"), {
+    category: "Aktyvus laisvalaikis",
+    image: "/images/winter-adventure.jpg",
+    imageAlt: "Žiemos aktyvaus laisvalaikio veikla",
+  });
 });
