@@ -4,9 +4,12 @@ import { ActivityCard } from "@/components/activity-card";
 import { FeatureCard } from "@/components/feature-card";
 import { Icon } from "@/components/icon";
 import { getActivities } from "@/lib/activities";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   const activities = await getActivities();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   return (
     <main id="main-content">
       <Hero />
@@ -19,7 +22,7 @@ export default async function Home() {
         </div>
         <div className="activity-grid">
           {activities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
+            <ActivityCard key={activity.id} activity={activity} currentUserId={user?.id ?? null} />
           ))}
         </div>
         <p className="activity-note">
