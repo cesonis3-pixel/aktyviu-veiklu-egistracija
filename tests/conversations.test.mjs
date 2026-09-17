@@ -15,6 +15,7 @@ function load(path, mocks = {}) {
   const compiled = { exports: {} };
   new Function("require", "module", "exports", source)(name => {
     if (name in mocks) return mocks[name];
+    if (name.startsWith("@/components/")) return load(`../${name.slice(2)}.tsx`, mocks);
     if (name.startsWith("@/")) return load(`../${name.slice(2)}.ts`, mocks);
     return require(name);
   }, compiled, compiled.exports);
@@ -50,7 +51,7 @@ test("history renders own bubbles on the right and other bubbles on the left wit
   assert.match(html, /message-other[\s\S]*Klausimas/);
   assert.match(html, /message-own[\s\S]*Atsakymas/);
   assert.equal((html.match(/<textarea/g) ?? []).length, 1);
-  assert.match(html, /Rašyti žinutę/);
+  assert.match(html, /Parašykite žinutę/);
   assert.doesNotMatch(html, /Atsakyti|Gauta žinutė|Siuntėjas|Gavėjas/);
   const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
   assert.match(css, /\.message-own\s*\{\s*justify-content: flex-end/);
@@ -72,6 +73,7 @@ test("messages page displays one named conversation with latest preview and link
   assert.match(html, /Povilas/); assert.match(html, /Žiemos žygis/); assert.match(html, /Atsakymas/);
   assert.match(html, /href="\/messages\/reply"/);
   assert.doesNotMatch(html, /Klausimas|Atsakyti/);
+  assert.match(html, /Neperskaitytų žinučių: 1/);
 });
 test("conversation route renders complete history and refuses foreign or nonexistent anchors", async () => {
   const { default: Page } = load("../app/messages/[messageId]/page.tsx", pageMocks());
@@ -89,34 +91,25 @@ test("message loader fetches all pages and restricts every query to the current 
   assert.equal((await readMessages({ from: () => query }, "owner")).length, 501);
   assert.deepEqual(ranges, [[0, 499], [500, 999]]);
 });
-function api({ user = "owner", original = row(), creator = "owner" } = {}) {
+function api({ user = "owner", error = null } = {}) {
   const calls = [];
   const client = {
     auth: { getUser: async () => ({ data: { user: user ? { id: user } : null } }) },
-    from: table => {
-      const query = { select: () => query, eq: () => query, or: () => query, maybeSingle: async () => ({ data: table === "activity_messages" ? original : { creator_id: creator }, error: null }) };
-      return query;
-    },
-    rpc: async (...args) => { calls.push(args); return { data: { success: true }, error: null }; },
+    rpc: async (...args) => { calls.push(args); return { data: { success: true }, error }; },
   };
   const { POST } = load("../app/api/messages/conversation/route.ts", { "next/server": { NextResponse }, "@/lib/supabase/server": { createClient: async () => client } });
   return { calls, send: (body = { message_id: id, message: "Tęsinys" }) => POST(new Request("http://localhost/api/messages/conversation", { method: "POST", body: JSON.stringify(body) })) };
 }
-test("organizer continues through reply RPC without browser recipient", async () => {
-  const route = api(); assert.equal((await route.send()).status, 200);
-  assert.deepEqual(route.calls, [["reply_activity_message", { p_message_id: id, p_message: "Tęsinys" }]]);
-});
-test("participant continues before and after organizer response using existing RPCs", async () => {
-  const initial = api({ user: "participant" }); assert.equal((await initial.send()).status, 200);
-  assert.deepEqual(initial.calls, [["send_activity_message", { p_activity_id: "activity", p_subject: "Tema", p_message: "Tęsinys" }]]);
-  const afterReply = api({ user: "participant", original: rows[1] }); assert.equal((await afterReply.send()).status, 200);
-  assert.equal(afterReply.calls[0][0], "reply_activity_message");
-});
-test("random recipients, foreign anchors, missing conversation and anonymous sends are rejected", async () => {
-  for (const options of [{ user: "stranger" }, { original: null }, { user: "participant", creator: "random" }, { user: null }]) {
-    const route = api(options); assert.equal((await route.send()).status, options.user === null ? 401 : 403); assert.equal(route.calls.length, 0);
+test("both parties send through a single RPC using only the anchor and text", async () => {
+  for (const user of ["owner", "participant"]) {
+    const route = api({ user }); assert.equal((await route.send()).status, 200);
+    assert.deepEqual(route.calls, [["send_conversation_message", { p_message_id: id, p_message: "Tęsinys" }]]);
   }
-  for (const body of [{ message_id: id, message: "Text", recipient_id: "random" }, { message_id: id, message: " \n\t" }, { message_id: id, message: "x".repeat(2001) }]) {
+});
+test("conversation API requires auth, rejects spoofed recipients and translates DB denial", async () => {
+  const anonymous = api({ user: null }); assert.equal((await anonymous.send()).status, 401); assert.equal(anonymous.calls.length, 0);
+  assert.equal((await api({ error: { code: "P0024" } }).send()).status, 403);
+  for (const body of [{ message_id: id, message: "Text", recipient_id: "random" }, { message_id: id, message: "Text", sender_id: "owner" }, { message_id: id, message: " " }, { message_id: id, message: "x".repeat(2001) }]) {
     const route = api(); assert.equal((await route.send(body)).status, 400); assert.equal(route.calls.length, 0);
   }
 });
@@ -166,4 +159,50 @@ test("composer sends only anchor and text, preserves failed draft and refreshes 
     assert.equal(refreshed, 1);
     assert.match(renderToStaticMarkup(render()), /Žinutė išsiųsta/);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test("refresh polls visible pages every 10 seconds, handles focus and cleans up listeners", () => {
+  let effect, interval, cleared = false, refreshed = 0;
+  const win = new EventTarget();
+  win.setInterval = (callback, ms) => { assert.equal(ms, 10000); interval = callback; return 7; };
+  win.clearInterval = timer => { assert.equal(timer, 7); cleared = true; };
+  const doc = new EventTarget(); doc.visibilityState = "visible";
+  const oldWindow = globalThis.window, oldDocument = globalThis.document;
+  globalThis.window = win; globalThis.document = doc;
+  try {
+    const { MessagesRefresh } = load("../components/messages-refresh.tsx", {
+      react: { useEffect: callback => { effect = callback; }, useTransition: () => [false, action => action()] },
+      "next/navigation": { useRouter: () => ({ refresh: () => { refreshed++; } }) },
+    });
+    MessagesRefresh(); const cleanup = effect();
+    interval(); assert.equal(refreshed, 1);
+    doc.visibilityState = "hidden"; interval(); assert.equal(refreshed, 1);
+    doc.visibilityState = "visible"; doc.dispatchEvent(new Event("visibilitychange"));
+    win.dispatchEvent(new Event("focus")); assert.equal(refreshed, 3);
+    cleanup(); assert.ok(cleared);
+    win.dispatchEvent(new Event("focus")); assert.equal(refreshed, 3);
+  } finally { globalThis.window = oldWindow; globalThis.document = oldDocument; }
+});
+
+test("opening visible chat marks only received unread messages; hidden chat waits", async () => {
+  const effects = [];
+  const doc = new EventTarget(); doc.visibilityState = "hidden";
+  const oldDocument = globalThis.document, oldFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.document = doc;
+  globalThis.fetch = async (url, options) => { requests.push([url, JSON.parse(options.body)]); return { ok: true }; };
+  try {
+    const { ConversationThread: Thread } = load("../components/conversation-thread.tsx", {
+      react: { useEffect: callback => effects.push(callback), useState: initial => [initial, () => {}], useRef: initial => ({ current: initial }), useTransition: () => [false, action => action()] },
+      "next/navigation": navigation,
+    });
+    Thread({ messages: [...rows, row({ id: "read", read_at: "2026-09-17T12:00:00Z" })], currentUserId: "owner", anchorId: id });
+    const cleanup = effects[1]();
+    assert.equal(requests.length, 0);
+    doc.visibilityState = "visible"; doc.dispatchEvent(new Event("visibilitychange"));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(requests, [["/api/messages/read", { message_ids: [id] }]]);
+    cleanup();
+    doc.dispatchEvent(new Event("visibilitychange")); assert.equal(requests.length, 1);
+  } finally { globalThis.document = oldDocument; globalThis.fetch = oldFetch; }
 });

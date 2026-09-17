@@ -1,6 +1,7 @@
 export type ConversationMessage = {
   id: string; activity_id: string | null; sender_id: string; recipient_id: string;
   subject: string; message: string; created_at: string;
+  read_at?: string | null;
   activities?: { title: string } | { title: string }[] | null;
 };
 
@@ -18,7 +19,8 @@ export function groupConversations(messages: ConversationMessage[], userId: stri
     group.messages.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id));
     const latest = group.messages[group.messages.length - 1];
     const activity = Array.isArray(latest.activities) ? latest.activities[0] : latest.activities;
-    return { ...group, latest, activityTitle: group.activityId ? activity?.title ?? "Veikla" : "Veikla ištrinta" };
+    const unreadCount = group.messages.filter(message => message.recipient_id === userId && !message.read_at).length;
+    return { ...group, latest, unreadCount, activityTitle: group.activityId ? activity?.title ?? "Veikla" : "Veikla ištrinta" };
   }).sort((a, b) => Date.parse(b.latest.created_at) - Date.parse(a.latest.created_at) || a.latest.id.localeCompare(b.latest.id));
 }
 

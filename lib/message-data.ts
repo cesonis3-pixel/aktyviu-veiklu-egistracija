@@ -6,7 +6,7 @@ export async function readMessages(supabase: Awaited<ReturnType<typeof createCli
   // Paginate so older history is not silently truncated by the API row limit.
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await supabase.from("activity_messages")
-      .select("id, activity_id, sender_id, recipient_id, subject, message, created_at, activities(title)")
+      .select("id, activity_id, sender_id, recipient_id, subject, message, created_at, read_at, activities(title)")
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order("created_at", { ascending: true }).order("id", { ascending: true }).range(offset, offset + 499);
     if (error) throw new Error("Nepavyko įkelti žinučių.");

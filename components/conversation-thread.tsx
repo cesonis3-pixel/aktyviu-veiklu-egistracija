@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { messageTime, type ConversationMessage } from "@/lib/conversations";
+import { MessagesRefresh } from "@/components/messages-refresh";
 
 export function ConversationThread({ messages, currentUserId, anchorId }: {
   messages: ConversationMessage[]; currentUserId: string; anchorId: string;
@@ -13,12 +14,40 @@ export function ConversationThread({ messages, currentUserId, anchorId }: {
   const [refreshing, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [readError, setReadError] = useState("");
   const inFlight = useRef(false);
   const history = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const latestId = messages[messages.length - 1]?.id;
   const busy = pending || refreshing;
   useEffect(() => {
-    if (history.current) history.current.scrollTop = history.current.scrollHeight;
-  }, [messages]);
+    if (history.current && followLatest.current) history.current.scrollTop = history.current.scrollHeight;
+  }, [latestId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    let running = false;
+    async function markRead() {
+      if (document.visibilityState !== "visible" || running) return;
+      const ids = messages.filter(item => item.recipient_id === currentUserId && !item.read_at).map(item => item.id);
+      if (!ids.length) return;
+      running = true;
+      try {
+        for (let offset = 0; offset < ids.length; offset += 500) {
+          const response = await fetch("/api/messages/read", {
+            method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
+            body: JSON.stringify({ message_ids: ids.slice(offset, offset + 500) }),
+          });
+          if (!response.ok) throw new Error("read failed");
+        }
+        if (!controller.signal.aborted) setReadError("");
+      } catch {
+        if (!controller.signal.aborted) setReadError("Nepavyko pažymėti perskaitytų žinučių. Bandysime dar kartą.");
+      } finally { running = false; }
+    }
+    void markRead();
+    document.addEventListener("visibilitychange", markRead);
+    return () => { controller.abort(); document.removeEventListener("visibilitychange", markRead); };
+  }, [messages, currentUserId]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current || busy) return;
@@ -35,23 +64,29 @@ export function ConversationThread({ messages, currentUserId, anchorId }: {
       const result = await response.json();
       if (!response.ok) { setError(result.error ?? "Nepavyko išsiųsti žinutės."); return; }
       setMessage(""); setNotice("Žinutė išsiųsta.");
+      followLatest.current = true;
       startTransition(() => router.refresh());
     } catch { setError("Nepavyko susisiekti su serveriu. Bandykite dar kartą."); }
     finally { inFlight.current = false; setPending(false); }
   }
   return <>
-    <div ref={history} className="conversation-history" role="log" aria-label="Pokalbio istorija">
+    <MessagesRefresh />
+    <div ref={history} className="conversation-history" role="log" aria-label="Pokalbio istorija" onScroll={() => {
+      const element = history.current;
+      if (element) followLatest.current = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+    }}>
       {messages.map(item => <div key={item.id} className={`message-row ${item.sender_id === currentUserId ? "message-own" : "message-other"}`}>
         <div className="message-bubble"><p>{item.message}</p><time dateTime={item.created_at}>{messageTime(item.created_at)}</time></div>
       </div>)}
     </div>
     <form className="conversation-composer" onSubmit={submit}>
       <label className="sr-only" htmlFor="conversation-message">Žinutė</label>
-      <textarea id="conversation-message" placeholder="Rašyti žinutę..." rows={2} required value={message} disabled={busy}
+      <textarea id="conversation-message" placeholder="Parašykite žinutę..." rows={2} required value={message} disabled={busy}
         onChange={event => setMessage(event.target.value)} aria-describedby="conversation-feedback" />
       <button type="submit" disabled={busy}>{busy ? "Siunčiama..." : "Siųsti"}</button>
       <div id="conversation-feedback" className="conversation-feedback">
         {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
+        {readError && <p role="status">{readError}</p>}
       </div>
     </form>
   </>;

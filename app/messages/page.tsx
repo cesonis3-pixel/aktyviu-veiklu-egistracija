@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { groupConversations, messageTime } from "@/lib/conversations";
 import { readMessages, readParticipantNames } from "@/lib/message-data";
+import { MessagesRefresh } from "@/components/messages-refresh";
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -15,6 +16,7 @@ export default async function MessagesPage() {
   }
   const names = await readParticipantNames(supabase, conversations.map(item => item.otherUserId));
   return <main id="main-content" className="container page-section messages-page">
+    <MessagesRefresh />
     <div className="page-heading"><h1>Pokalbiai</h1><p>Jūsų susirašinėjimai apie žiemos veiklas.</p></div>
     {!conversations.length ? <div className="empty-state"><h2>Pokalbių dar nėra</h2><p>Pasirinkite veiklą ir parašykite jos organizatoriui.</p><Link href="/activities">Atrasti veiklas</Link></div> :
       <ul className="conversation-list" aria-label="Pokalbiai">
@@ -26,6 +28,7 @@ export default async function MessagesPage() {
               <span className="conversation-summary"><strong>{name}</strong><span>{conversation.activityTitle}</span>
                 <span className="conversation-preview">{conversation.latest.sender_id === user.id ? "Jūs: " : ""}{conversation.latest.message.replace(/\s+/g, " ").slice(0, 140)}</span></span>
               <time dateTime={conversation.latest.created_at}>{messageTime(conversation.latest.created_at)}</time>
+              {conversation.unreadCount > 0 && <span className="conversation-unread" aria-label={`Neperskaitytų žinučių: ${conversation.unreadCount}`}>{conversation.unreadCount}</span>}
             </Link>
           </li>;
         })}

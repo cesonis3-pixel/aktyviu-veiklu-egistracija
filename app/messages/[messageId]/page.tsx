@@ -18,14 +18,14 @@ export default async function ConversationPage({ params }: { params: Promise<{ m
   const conversation = conversations.find(item => item.messages.some(message => message.id === messageId));
   if (!conversation) notFound();
   const names = await readParticipantNames(supabase, [conversation.otherUserId]);
-  const anchor = conversation.messages.find(message => message.recipient_id === user.id) ?? conversation.latest;
+  const anchor = conversation.latest;
   return <main id="main-content" className="container page-section messages-page">
     <Link className="conversation-back" href="/messages">← Visi pokalbiai</Link>
     <section className="conversation-panel" aria-label="Pokalbis">
       <header className="conversation-header"><h1>{names.get(conversation.otherUserId) ?? "Dalyvis"}</h1>
         {conversation.activityId ? <Link href={`/activities/${conversation.activityId}`}>{conversation.activityTitle}</Link> : <p>{conversation.activityTitle}</p>}
       </header>
-      <ConversationThread messages={conversation.messages} currentUserId={user.id} anchorId={anchor.id} />
+      <ConversationThread key={`${conversation.activityId}:${conversation.otherUserId}`} messages={conversation.messages} currentUserId={user.id} anchorId={anchor.id} />
     </section>
   </main>;
 }

@@ -119,7 +119,7 @@ export function ActivityDetail({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activity_id: activity.id, subject: trimmedSubject, message: trimmedMessage }),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as { error?: string; id?: string };
       if (!response.ok) {
         setNotice(result.error ?? "Nepavyko išsiųsti žinutės.");
         return;
@@ -128,6 +128,7 @@ export function ActivityDetail({
       setSubject("");
       setMessage("");
       setNotice("Žinutė išsiųsta veiklos organizatoriui.");
+      if (result.id) router.push(`/messages/${encodeURIComponent(result.id)}`);
     } catch {
       setNotice("Nepavyko susisiekti su serveriu. Bandykite dar kartą.");
     } finally {

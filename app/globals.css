@@ -961,6 +961,7 @@ p {
 .conversation-summary strong { font-size: 1.05rem; }
 .conversation-summary > span { font-size: .88rem; }
 .conversation-preview { color: #60758a; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.conversation-unread { flex: 0 0 auto; display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: #183d59; color: white; font-size: .75rem; font-weight: 700; }
 .conversation-link time { align-self: flex-start; color: #60758a; font-size: .75rem; white-space: nowrap; }
 .conversation-back { display: inline-block; margin-bottom: 20px; }
 .conversation-panel { border: 1px solid #dce6ee; border-radius: 16px; overflow: hidden; background: white; }
