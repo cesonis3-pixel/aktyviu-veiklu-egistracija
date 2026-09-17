@@ -115,6 +115,7 @@ test("my activities exposes deletion for supplied owned activities and an empty 
 test("active activity and reservation keep existing participant actions", () => {
   const html = render(MyReservations, { signedIn: true, items: [{ activity, reservation: { activity_id: activity.id, status: "active" } }] });
   assert.match(html, /Vieta rezervuota/);
+  assert.match(html, /Laisvų vietų: 1 iš 10/);
   assert.match(html, /Atšaukti rezervaciją/);
   assert.doesNotMatch(html, /Veikla atšaukta/);
 });

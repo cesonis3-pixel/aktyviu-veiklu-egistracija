@@ -47,7 +47,7 @@ export function ActivityCard({ activity, currentUserId, signedIn = false }: { ac
           <Icon name="users" />
           <span>
             {cancelled ? "Veikla atšaukta" : isReserved
-              ? "Vieta rezervuota"
+              ? `Vieta rezervuota · Laisvų vietų: ${available} iš ${activity.capacity}`
               : `Laisvų vietų: ${available} iš ${activity.capacity}`}
           </span>
         </div>
