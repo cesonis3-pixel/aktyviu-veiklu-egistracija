@@ -307,13 +307,8 @@ begin
   if activity_row.creator_id <> current_user_id then
     raise exception 'Neturite teisės ištrinti šios veiklos.' using errcode = 'P0008';
   end if;
-  if exists (
-    select 1 from public.reservations
-    where activity_id = p_activity_id and status = 'active'
-  ) then
-    raise exception 'Šios veiklos ištrinti negalima, nes yra rezervacijų. Naudokite veiklos atšaukimą.' using errcode = 'P0013';
-  end if;
-  -- Esamas ON DELETE CASCADE pašalina tik likusią atšauktų rezervacijų istoriją.
+  -- reservations.activity_id ON DELETE CASCADE atominiu būdu pašalina visas
+  -- šios veiklos rezervacijas, tiek aktyvias, tiek atšauktas.
   delete from public.activities
   where id = p_activity_id and creator_id = current_user_id;
   return jsonb_build_object('success', true);

@@ -121,7 +121,7 @@ export function MyActivities({ activities, initialNotice = "" }: { activities: A
             {deletingId === activity.id ? (
               <div className="activity-confirmation" role="alertdialog" aria-labelledby={`delete-title-${activity.id}`}>
                 <h2 id={`delete-title-${activity.id}`}>Ar tikrai norite ištrinti šią veiklą?</h2>
-                <p>Veiklos su aktyviomis rezervacijomis ištrinti negalima. Ištrynus veiklą bus pašalinta ir jos atšauktų rezervacijų istorija. Šio veiksmo atšaukti negalima.</p>
+                <p>Ištrynus veiklą bus pašalintos visos jos rezervacijos. Šio veiksmo atšaukti negalima.</p>
                 <div className="confirmation-actions">
                   <button type="button" disabled={Boolean(pendingId)} onClick={() => remove(activity.id)}>{pendingId === activity.id ? "Trinama..." : "Ištrinti"}</button>
                   <button type="button" className="button button-outline" disabled={Boolean(pendingId)} onClick={() => setDeletingId(null)}>Atšaukti</button>

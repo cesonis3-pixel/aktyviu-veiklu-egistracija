@@ -215,7 +215,7 @@ export function ActivityDetail({
               ) : (
                 <div className="activity-confirmation" role="alertdialog" aria-labelledby="detail-delete-title">
                   <h3 id="detail-delete-title">Ar tikrai norite ištrinti šią veiklą?</h3>
-                  <p>Šio veiksmo atšaukti negalima. Jei veikla turi aktyvių rezervacijų, serveris trynimą atmes.</p>
+                  <p>Šio veiksmo atšaukti negalima. Kartu bus pašalintos visos šios veiklos rezervacijos.</p>
                   <div className="confirmation-actions">
                     <button type="button" onClick={deleteActivity} disabled={deleting}>{deleting ? "Trinama..." : "Patvirtinti trynimą"}</button>
                     <button type="button" className="button button-outline" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Atšaukti</button>

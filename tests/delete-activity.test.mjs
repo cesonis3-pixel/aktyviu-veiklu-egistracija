@@ -84,6 +84,13 @@ test("winter categories match titles without changing DB identity or description
     assert.ok(existsSync(new URL(`../public/images/${filename}`, import.meta.url)));
   }
 });
+test("latest deletion migration permits owner deletion with reservations and retains owner guard", () => {
+  const migration = readFileSync(new URL("../supabase/migrations/20260917_delete_activity_with_reservations.sql", import.meta.url), "utf8");
+  assert.ok(migration.includes("activity_row.creator_id <> current_user_id"));
+  assert.ok(migration.includes("delete from public.activities"));
+  assert.ok(migration.includes("ON DELETE CASCADE"));
+  assert.ok(!migration.includes("P0013"));
+});
 
 test("unknown activity title uses the neutral title-based fallback image", () => {
   const { getActivityImage } = load("../lib/activities.ts", { "./supabase/server": {} });
