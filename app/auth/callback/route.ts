@@ -3,7 +3,9 @@ import { createRouteClient } from "@/lib/supabase/route";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const response = NextResponse.redirect(new URL("/", request.url));
+  const next = request.nextUrl.searchParams.get("next");
+  const returnTo = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
+  const response = NextResponse.redirect(new URL(returnTo, request.url));
   response.headers.set("Cache-Control", "private, no-store");
   let reason = "confirmation";
   if (code && !request.nextUrl.searchParams.has("error")) {

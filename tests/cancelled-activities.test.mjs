@@ -92,6 +92,18 @@ test("organizer message button is only shown to signed in nonowners including ca
   }
 });
 
+test("guest card sends reservation intent to login while signed-in user keeps reservation link", () => {
+  const availableActivity = { ...activity, isReserved: false, available: 2, creator_id: "another-user" };
+  const guestHtml = render(ActivityCard, { activity: availableActivity, signedIn: false });
+  assert.match(guestHtml, /Prisijungti ir rezervuoti/);
+  assert.match(guestHtml, new RegExp(`/login\\?next=%2Factivities%2F${activity.id}`));
+
+  const signedInHtml = render(ActivityCard, { activity: availableActivity, signedIn: true });
+  assert.match(signedInHtml, /Registruotis/);
+  assert.match(signedInHtml, new RegExp(`/activities/${activity.id}#reservation`));
+  assert.doesNotMatch(signedInHtml, /Prisijungti ir rezervuoti/);
+});
+
 test("my activities exposes deletion for supplied owned activities and an empty state", () => {
   const html = render(MyActivities, { activities: [activity] });
   assert.match(html, /Žygis gamtoje/);

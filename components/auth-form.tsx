@@ -5,7 +5,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
 
-export function AuthForm({ mode }: { mode: "login" | "register" }) {
+export function AuthForm({ mode, returnTo }: { mode: "login" | "register"; returnTo?: string }) {
   const inFlight = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +33,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           email,
           password,
           options: {
-            emailRedirectTo: new URL("/auth/callback", window.location.origin)
+            emailRedirectTo: new URL(`/auth/callback${returnTo ? `?next=${encodeURIComponent(returnTo)}` : ""}`, window.location.origin)
               .href,
             data: { full_name: fullName },
           },
@@ -67,7 +67,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         }
         // Cookies are saved before the promise resolves. A fresh document
         // avoids reusing an anonymous prefetched layout after signing in.
-        window.location.replace(new URL("/", window.location.origin).href);
+        window.location.replace(new URL(returnTo ?? "/", window.location.origin).href);
       }
     } catch (error) {
       setError(getAuthErrorMessage(error));
