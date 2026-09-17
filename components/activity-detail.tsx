@@ -244,7 +244,7 @@ export function ActivityDetail({
         </div>
         {!cancelled && !signedIn && available > 0 && <p className="activity-note">Norint rezervuoti vietą reikia prisijungti.</p>}
         {signedIn && !isOwner && (
-          <div className="activity-message-actions">
+          <div className="activity-message-actions" id="message">
             {!messageFormOpen ? (
               <button type="button" className="button button-outline" onClick={() => setMessageFormOpen(true)}>Parašyti organizatoriui</button>
             ) : (

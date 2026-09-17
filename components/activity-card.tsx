@@ -54,6 +54,9 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
+          <Link className="button button-outline" href={`${href}#message`}>
+            Rašyti žinutę
+          </Link>
           {cancelled ? (
             <button disabled type="button">Veikla atšaukta</button>
           ) : isReserved ? (
