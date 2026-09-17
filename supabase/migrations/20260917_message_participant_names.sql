@@ -52,7 +52,11 @@ after insert on auth.users
 for each row execute procedure public.create_profile_for_user();
 
 -- Organizatoriaus vardas gaunamas pagal tikrą creator_id, ne pagal veiklos teksto lauką.
-create or replace function public.get_public_activities()
+-- PostgreSQL neleidžia CREATE OR REPLACE pakeisti funkcijos RETURNS TABLE struktūros,
+-- todėl pašalinama tik sena funkcijos versija (lentelės ir duomenys neliečiami).
+drop function if exists public.get_public_activities();
+
+create function public.get_public_activities()
 returns table (
   id uuid,
   creator_id uuid,

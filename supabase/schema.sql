@@ -176,6 +176,9 @@ begin
   if not found then
     raise exception 'Veikla nerasta.' using errcode = 'P0002';
   end if;
+  if activity_row.creator_id = current_user_id then
+    raise exception 'Negalite rezervuoti savo sukurtos veiklos.' using errcode = 'P0014';
+  end if;
   if activity_row.status <> 'active' then
     raise exception 'Ši veikla atšaukta.' using errcode = 'P0003';
   end if;
@@ -420,7 +423,8 @@ drop trigger if exists on_auth_user_created_profile on auth.users;
 create trigger on_auth_user_created_profile after insert on auth.users
 for each row execute procedure public.create_profile_for_user();
 
-create or replace function public.get_public_activities()
+drop function if exists public.get_public_activities();
+create function public.get_public_activities()
 returns table (id uuid, creator_id uuid, title text, description text, location text,
   starts_at timestamptz, capacity integer, status text, available integer, organizer_name text)
 language sql security definer set search_path = public as $$

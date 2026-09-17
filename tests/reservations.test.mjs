@@ -76,6 +76,12 @@ test("full, duplicate and cancelled activity responses are clear Lithuanian conf
   }
 });
 
+test("activity creator cannot reserve through the API", async () => {
+  const response = await setup({ error: { code: "P0014" } }).POST(request());
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), { error: "Negalite rezervuoti savo sukurtos veiklos." });
+});
+
 test("unexpected database and network errors do not expose internal messages", async () => {
   for (const options of [{ error: { code: "XX000", message: "private DB details" } }, { fails: true }]) {
     const response = await setup(options).POST(request());

@@ -227,10 +227,12 @@ export function ActivityDetail({
         ) : null}
         <div className="reservation-panel" id="reservation">
           <div>
-            <h2>{cancelled ? "Veikla atšaukta" : reserved ? "Tavo vieta rezervuota" : available > 0 ? "Prisijunk prie nuotykio" : "Visos vietos užimtos"}</h2>
-            <p>{cancelled ? "Organizatorius atšaukė veiklą. Naujos rezervacijos nebepriimamos. Esamos rezervacijos išlieka skiltyje „Mano rezervacijos“." : "Rezervacija išsaugoma tavo paskyroje."}</p>
+            <h2>{isOwner ? "Tai tavo sukurta veikla" : cancelled ? "Veikla atšaukta" : reserved ? "Tavo vieta rezervuota" : available > 0 ? "Prisijunk prie nuotykio" : "Visos vietos užimtos"}</h2>
+            <p>{isOwner ? "Kaip organizatorius galite valdyti šią veiklą, tačiau jos rezervuoti negalite." : cancelled ? "Organizatorius atšaukė veiklą. Naujos rezervacijos nebepriimamos. Esamos rezervacijos išlieka skiltyje „Mano rezervacijos“." : "Rezervacija išsaugoma tavo paskyroje."}</p>
           </div>
-          {cancelled ? (
+          {isOwner ? (
+            <span className="activity-note">Tai tavo sukurta veikla</span>
+          ) : cancelled ? (
             <button type="button" disabled>Veikla atšaukta</button>
           ) : reserved ? (
             <button type="button" className="button button-outline" disabled={busy} onClick={() => changeReservation("DELETE")}>{busy ? "Atšaukiama..." : "Atšaukti rezervaciją"}</button>

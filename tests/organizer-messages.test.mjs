@@ -307,9 +307,11 @@ test("activity detail shows owner management and hides messaging from owner", ()
   const visitorHtml = renderToStaticMarkup(React.createElement(ActivityDetail, { activity, signedIn: true, currentUserId: "visitor-1" }));
 
   assert.match(ownerHtml, /Veiklos valdymas/);
+  assert.match(ownerHtml, /Tai tavo sukurta veikla/);
   assert.match(ownerHtml, /Redaguoti/);
   assert.match(ownerHtml, /Ištrinti veiklą/);
   assert.doesNotMatch(ownerHtml, /Parašyti organizatoriui/);
+  assert.doesNotMatch(ownerHtml, /Registruoti vietą/);
   assert.match(visitorHtml, /Parašyti organizatoriui/);
   assert.doesNotMatch(visitorHtml, /Veiklos valdymas/);
   assert.match(ownerHtml, /Snow Adventure LT/);

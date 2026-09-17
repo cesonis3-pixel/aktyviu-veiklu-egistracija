@@ -8,6 +8,7 @@ export function reservationError(code?: string) {
     case "P0005": return { status: 409, message: "Vietų nebeliko." };
     case "P0006": return { status: 409, message: "Aktyvi rezervacija nerasta." };
     case "P0007": return { status: 409, message: "Ši veikla jau prasidėjo." };
+    case "P0014": return { status: 403, message: "Negalite rezervuoti savo sukurtos veiklos." };
     default: return { status: 500, message: "Nepavyko pakeisti rezervacijos. Bandykite dar kartą." };
   }
 }
