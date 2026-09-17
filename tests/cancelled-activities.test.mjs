@@ -55,6 +55,7 @@ test("reactivation button is only visible for the owner of a cancelled activity"
 test("messages page reads received and sent messages for authenticated creator", async () => {
   let filter;
   const { default: MessagesPage } = load("../app/messages/page.tsx", {
+    "@/components/reply-message": { ReplyMessage: () => React.createElement("button", null, "Atsakyti") },
     "@/lib/supabase/server": { createClient: async () => ({
       auth: { getUser: async () => ({ data: { user: { id: "creator" } } }) },
       from: table => {
