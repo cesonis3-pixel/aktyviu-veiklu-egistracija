@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 
-export function ActivityCard({ activity }: { activity: Activity }) {
+export function ActivityCard({ activity, currentUserId }: { activity: Activity; currentUserId?: string | null }) {
   const isReserved = activity.isReserved;
   const available = activity.available;
   const cancelled = activity.status === "cancelled";
@@ -54,9 +54,9 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          <Link className="button button-outline" href={`${href}#message`}>
-            Rašyti žinutę
-          </Link>
+          {activity.creator_id !== currentUserId && <Link className="button button-outline" href={`${href}#message`}>
+            Parašyti organizatoriui
+          </Link>}
           {cancelled ? (
             <button disabled type="button">Veikla atšaukta</button>
           ) : isReserved ? (

@@ -249,6 +249,7 @@ export function ActivityDetail({
               <button type="button" className="button button-outline" onClick={() => setMessageFormOpen(true)}>Parašyti organizatoriui</button>
             ) : (
               <form className="auth-form" onSubmit={sendMessage}>
+                <p><strong>Gavėjas:</strong> {activity.organizer_name?.trim() || "Dalyvis"}</p>
                 <label htmlFor="message-subject">Tema</label>
                 <input id="message-subject" value={subject} onChange={(event) => setSubject(event.target.value)} required maxLength={120} disabled={sending} />
                 <label htmlFor="message-body">Žinutė</label>

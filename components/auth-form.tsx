@@ -21,6 +21,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     const data = new FormData(form);
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
+    const fullName = String(data.get("full_name") ?? "").trim();
     setPending(true);
     setError("");
     setSuccess(false);
@@ -34,6 +35,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           options: {
             emailRedirectTo: new URL("/auth/callback", window.location.origin)
               .href,
+            data: { full_name: fullName },
           },
         });
         if (error) {
@@ -79,6 +81,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     <section className="auth-card" aria-labelledby="auth-title">
       <h1 id="auth-title">{title}</h1>
       <form onSubmit={handleSubmit} className="auth-form" aria-busy={pending}>
+        {register && <>
+          <label htmlFor="full_name">Vardas</label>
+          <input id="full_name" name="full_name" type="text" autoComplete="name" required maxLength={80} disabled={pending} />
+        </>}
         <label htmlFor="email">El. paštas</label>
         <input
           id="email"

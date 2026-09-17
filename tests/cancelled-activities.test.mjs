@@ -58,6 +58,12 @@ test("messages page reads received and sent messages for authenticated creator",
     "@/lib/supabase/server": { createClient: async () => ({
       auth: { getUser: async () => ({ data: { user: { id: "creator" } } }) },
       from: table => {
+        if (table === "profiles") {
+          return { select: async () => ({ data: [
+            { id: "creator", display_name: "Jurgita" },
+            { id: "participant", display_name: "Tomas" },
+          ] }) };
+        }
         assert.equal(table, "activity_messages");
         return { select: () => ({ or: value => {
           filter = value;
@@ -72,7 +78,7 @@ test("messages page reads received and sent messages for authenticated creator",
   });
   const html = renderToStaticMarkup(await MessagesPage());
   assert.equal(filter, "sender_id.eq.creator,recipient_id.eq.creator");
-  for (const text of ["Gauta žinutė", "Klausimas apie veiklą", "Kur susitinkame?", "participant", activity.title])
+  for (const text of ["Gauta žinutė", "Klausimas apie veiklą", "Kur susitinkame?", "Tomas", "Jūs", activity.title])
     assert.ok(html.includes(text), text);
 });
 

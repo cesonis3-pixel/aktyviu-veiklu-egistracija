@@ -7,13 +7,13 @@ export default async function MessagesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: messages, error }, { data: activities }] = await Promise.all([
+  const [{ data: messages, error }, { data: profiles }] = await Promise.all([
     supabase
       .from("activity_messages")
       .select("id, activity_id, subject, message, created_at, read_at, sender_id, recipient_id, activities(title)")
       .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
       .order("created_at", { ascending: false }),
-    supabase.rpc("get_public_activities"),
+    supabase.from("profiles").select("id, display_name"),
   ]);
 
   if (error) {
@@ -25,9 +25,9 @@ export default async function MessagesPage() {
     );
   }
 
-  const organizerNames = new Map(
-    ((activities ?? []) as { id: string; organizer_name: string | null }[])
-      .map((activity) => [activity.id, activity.organizer_name?.trim() || "Organizatorius"]),
+  const participantNames = new Map(
+    ((profiles ?? []) as { id: string; display_name: string | null }[])
+      .map((profile) => [profile.id, profile.display_name?.trim() || "Dalyvis"]),
   );
 
   return (
@@ -66,15 +66,16 @@ export default async function MessagesPage() {
             })();
             const recipientName = (() => {
               if (message.recipient_id === user.id) return "Jūs";
-              return message.activity_id ? organizerNames.get(message.activity_id) ?? "Organizatorius" : "Organizatorius";
+              return participantNames.get(message.recipient_id) ?? "Dalyvis";
             })();
+            const senderName = message.sender_id === user.id ? "Jūs" : participantNames.get(message.sender_id) ?? "Dalyvis";
             return (
               <article key={message.id} className="activity-card">
                 <div className="activity-body">
                   <h3>{message.subject}</h3>
                   <p>{message.recipient_id === user.id ? "Gauta žinutė" : "Išsiųsta žinutė"}</p>
                   <p><strong>Veikla:</strong> {message.activity_id ? <Link href={`/activities/${message.activity_id}`}>{activityTitle}</Link> : "Veikla ištrinta"}</p>
-                  <p><strong>Siuntėjas:</strong> {message.sender_id === user.id ? "Jūs" : message.sender_id}</p>
+                  <p><strong>Siuntėjas:</strong> {senderName}</p>
                   <p><strong>Gavėjas:</strong> {recipientName}</p>
                   <p style={{ whiteSpace: "pre-wrap" }}>{message.message}</p>
                   <p><small>{new Date(message.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius" })}</small></p>
