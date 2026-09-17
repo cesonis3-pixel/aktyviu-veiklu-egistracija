@@ -1,6 +1,7 @@
 export type Activity = {
   id: string;
   creator_id?: string;
+  isOwner?: boolean;
   isReserved?: boolean;
   title: string;
   category: string;

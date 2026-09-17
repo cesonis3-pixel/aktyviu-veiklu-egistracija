@@ -8,6 +8,7 @@ export function ActivityCard({ activity, currentUserId }: { activity: Activity; 
   const isReserved = activity.isReserved;
   const available = activity.available;
   const cancelled = activity.status === "cancelled";
+  const isOwner = Boolean(activity.isOwner || (currentUserId && activity.creator_id === currentUserId));
   const href = `/activities/${activity.id}`;
   return (
     <article className="activity-card">
@@ -54,10 +55,12 @@ export function ActivityCard({ activity, currentUserId }: { activity: Activity; 
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          {activity.creator_id !== currentUserId && <Link className="button button-outline" href={`${href}#message`}>
+          {!isOwner && <Link className="button button-outline" href={`${href}#message`}>
             Parašyti organizatoriui
           </Link>}
-          {cancelled ? (
+          {isOwner ? (
+            <span className="activity-note">Tai tavo sukurta veikla</span>
+          ) : cancelled ? (
             <button disabled type="button">Veikla atšaukta</button>
           ) : isReserved ? (
             <Link className="button" href={`${href}#reservation`}>

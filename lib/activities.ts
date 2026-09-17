@@ -90,12 +90,18 @@ export async function getActivities() {
   const { data, error } = await supabase.rpc("get_public_activities");
   if (error) throw error;
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: reservations, error: reservationError } = user
-    ? await supabase.from("reservations").select("activity_id")
-        .eq("user_id", user.id).eq("status", "active")
-    : { data: [], error: null };
+  const [{ data: reservations, error: reservationError }, { data: ownedActivities, error: ownedActivitiesError }] = user
+    ? await Promise.all([
+      supabase.from("reservations").select("activity_id")
+        .eq("user_id", user.id).eq("status", "active"),
+      // Savininkas nustatomas pagal auth vartotojo ID ir creator_id, niekada pagal organizer_name.
+      supabase.from("activities").select("id, creator_id").eq("creator_id", user.id),
+    ])
+    : [{ data: [], error: null }, { data: [], error: null }];
   if (reservationError) throw reservationError;
+  if (ownedActivitiesError) throw ownedActivitiesError;
   const reserved = new Set((reservations ?? []).map(row => row.activity_id));
+  const ownedById = new Map((ownedActivities ?? []).map(row => [row.id, row.creator_id]));
   const rows = data as ActivityRow[];
   const specificallyUsedImages = new Set(
     rows.filter(row => hasSpecificImage(row.title))
@@ -113,8 +119,9 @@ export async function getActivities() {
       .map((row, index) => [row.id, fallbackImages[index % fallbackImages.length]]),
   );
   return rows.map(row => ({
-    ...toActivity(row),
+    ...toActivity({ ...row, creator_id: ownedById.get(row.id) ?? row.creator_id }),
     ...(fallbackById.get(row.id) ?? {}),
     isReserved: reserved.has(row.id),
+    isOwner: Boolean(user && ownedById.has(row.id)),
   }));
 }
