@@ -1,95 +1,34 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ReplyMessage } from "@/components/reply-message";
+import { groupConversations, messageTime } from "@/lib/conversations";
+import { readMessages, readParticipantNames } from "@/lib/message-data";
 
 export default async function MessagesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const [{ data: messages, error }, { data: profiles }] = await Promise.all([
-    supabase
-      .from("activity_messages")
-      .select("id, activity_id, subject, message, created_at, read_at, sender_id, recipient_id, activities(title)")
-      .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-      .order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, display_name"),
-  ]);
-
-  if (error) {
-    return (
-      <main id="main-content" className="container page-section">
-        <h1>Žinutės</h1>
-        <p>Nepavyko įkelti žinučių. Bandykite dar kartą.</p>
-      </main>
-    );
+  let conversations;
+  try { conversations = groupConversations(await readMessages(supabase, user.id), user.id); }
+  catch {
+    return <main id="main-content" className="container page-section"><h1>Pokalbiai</h1><p role="alert">Nepavyko įkelti žinučių. Bandykite dar kartą.</p></main>;
   }
-
-  const participantNames = new Map(
-    ((profiles ?? []) as { id: string; display_name: string | null }[])
-      .map((profile) => [profile.id, profile.display_name?.trim() || "Dalyvis"]),
-  );
-
-  return (
-    <main id="main-content" className="container page-section">
-      <div className="page-heading">
-        <div className="section-heading">
-          <div>
-            <h1>Žinutės</h1>
-            <p>Peržiūrėkite gautas ir išsiųstas žinutes apie savo veiklas.</p>
-          </div>
-        </div>
-      </div>
-      {(["Gautos", "Išsiųstos"] as const).map(section => {
-        const items = (messages ?? []).filter(message => section === "Gautos"
-          ? message.recipient_id === user.id : message.sender_id === user.id);
-        return <section key={section} aria-label={section} className="section">
-        <h2>{section}</h2>
-        {items.length === 0 ? (
-        <div className="empty-state">
-          <h2>Žinučių nėra</h2>
-          <p>{section === "Gautos" ? "Kol kas negavote žinučių." : "Kol kas neišsiuntėte žinučių."}</p>
-        </div>
-      ) : (
-        <div className="activity-grid">
-          {items.map((message) => {
-            const activityTitle = (() => {
-              if (Array.isArray(message.activities)) {
-                return message.activities[0]?.title ?? "Nežinoma";
-              }
-
-              if (message.activities && typeof message.activities === "object" && "title" in message.activities) {
-                return (message.activities as { title?: string | null }).title ?? "Nežinoma";
-              }
-
-              return "Nežinoma";
-            })();
-            const recipientName = (() => {
-              if (message.recipient_id === user.id) return "Jūs";
-              return participantNames.get(message.recipient_id) ?? "Dalyvis";
-            })();
-            const senderName = message.sender_id === user.id ? "Jūs" : participantNames.get(message.sender_id) ?? "Dalyvis";
-            return (
-              <article key={message.id} className="activity-card">
-                <div className="activity-body">
-                  <h3>{message.subject}</h3>
-                  {/^Re:/i.test(message.subject) && <p>Atsakymas į žinutę</p>}
-                  <p>{message.recipient_id === user.id ? "Gauta žinutė" : "Išsiųsta žinutė"}</p>
-                  <p><strong>Veikla:</strong> {message.activity_id ? <Link href={`/activities/${message.activity_id}`}>{activityTitle}</Link> : "Veikla ištrinta"}</p>
-                  <p><strong>Siuntėjas:</strong> {senderName}</p>
-                  <p><strong>Gavėjas:</strong> {recipientName}</p>
-                  <p style={{ whiteSpace: "pre-wrap" }}>{message.message}</p>
-                  <p><small>{new Date(message.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius" })}</small></p>
-                  {section === "Gautos" && message.recipient_id === user.id &&
-                    <ReplyMessage messageId={message.id} subject={message.subject} />}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}</section>;
-      })}
-    </main>
-  );
+  const names = await readParticipantNames(supabase, conversations.map(item => item.otherUserId));
+  return <main id="main-content" className="container page-section messages-page">
+    <div className="page-heading"><h1>Pokalbiai</h1><p>Jūsų susirašinėjimai apie žiemos veiklas.</p></div>
+    {!conversations.length ? <div className="empty-state"><h2>Pokalbių dar nėra</h2><p>Pasirinkite veiklą ir parašykite jos organizatoriui.</p><Link href="/activities">Atrasti veiklas</Link></div> :
+      <ul className="conversation-list" aria-label="Pokalbiai">
+        {conversations.map(conversation => {
+          const name = names.get(conversation.otherUserId) ?? "Dalyvis";
+          return <li key={`${conversation.activityId}:${conversation.otherUserId}`}>
+            <Link className="conversation-link" href={`/messages/${conversation.latest.id}`}>
+              <span className="conversation-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
+              <span className="conversation-summary"><strong>{name}</strong><span>{conversation.activityTitle}</span>
+                <span className="conversation-preview">{conversation.latest.sender_id === user.id ? "Jūs: " : ""}{conversation.latest.message.replace(/\s+/g, " ").slice(0, 140)}</span></span>
+              <time dateTime={conversation.latest.created_at}>{messageTime(conversation.latest.created_at)}</time>
+            </Link>
+          </li>;
+        })}
+      </ul>}
+  </main>;
 }

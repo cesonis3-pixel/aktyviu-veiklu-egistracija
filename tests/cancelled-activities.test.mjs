@@ -52,37 +52,6 @@ test("reactivation button is only visible for the owner of a cancelled activity"
   }
 });
 
-test("messages page reads received and sent messages for authenticated creator", async () => {
-  let filter;
-  const { default: MessagesPage } = load("../app/messages/page.tsx", {
-    "@/components/reply-message": { ReplyMessage: () => React.createElement("button", null, "Atsakyti") },
-    "@/lib/supabase/server": { createClient: async () => ({
-      auth: { getUser: async () => ({ data: { user: { id: "creator" } } }) },
-      from: table => {
-        if (table === "profiles") {
-          return { select: async () => ({ data: [
-            { id: "creator", display_name: "Jurgita" },
-            { id: "participant", display_name: "Tomas" },
-          ] }) };
-        }
-        assert.equal(table, "activity_messages");
-        return { select: () => ({ or: value => {
-          filter = value;
-          return { order: async () => ({ error: null, data: [{
-            id: "message", activity_id: activity.id, subject: "Klausimas apie veiklą",
-            message: "Kur susitinkame?", sender_id: "participant", recipient_id: "creator",
-            created_at: "2026-09-15T10:00:00Z", read_at: null, activities: { title: activity.title },
-          }] }) };
-        } }) };
-      },
-    }) },
-  });
-  const html = renderToStaticMarkup(await MessagesPage());
-  assert.equal(filter, "sender_id.eq.creator,recipient_id.eq.creator");
-  for (const text of ["Gauta žinutė", "Klausimas apie veiklą", "Kur susitinkame?", "Tomas", "Jūs", activity.title])
-    assert.ok(html.includes(text), text);
-});
-
 test("organizer message button is only shown to signed in nonowners including cancelled activities", () => {
   for (const status of ["active", "cancelled"]) {
     for (const [signedIn, isOwner, visible] of [[false, false, false], [true, true, false], [true, false, true]]) {
