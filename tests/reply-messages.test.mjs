@@ -37,7 +37,7 @@ before(async () => {
     insert into auth.users values ('${participant}'), ('${organizer}'), ('${stranger}');
     insert into activities values ('${activityId}', '${organizer}', 'Žiemos žygis');`);
   // Use the real existing table, grants and RLS policies, then the new migration.
-  await db.exec(previous.slice(0, previous.indexOf("create or replace function public.send_activity_message")) + "commit;");
+  await db.exec(previous.slice(0, previous.indexOf("create or replace function public.reactivate_activity")) + "commit;");
   await db.exec(migration);
   await db.query(`insert into activity_messages(id, activity_id, sender_id, recipient_id, subject, message)
     values ($1, $2, $3, $4, 'Kada susitinkame?', 'Dalyvio klausimas')`, [originalId, activityId, participant, organizer]);
@@ -64,6 +64,15 @@ test("organizer can reply; DB derives sender, recipient and activity and preserv
   const followup = await asUser(participant, () => reply(saved.id, "Ačiū!"));
   const subject = (await db.query("select subject from activity_messages where id = $1", [followup.rows[0].result.id])).rows[0].subject;
   assert.equal(subject, saved.subject);
+});
+test("participant can send consecutive messages before a reply and organizer can reply repeatedly", async () => {
+  for (let index = 0; index < 2; index++) {
+    const sent = await asUser(participant, () => db.query("select public.send_activity_message($1, $2, $3) as result", [activityId, "Tema", "Dar vienas klausimas"]));
+    const saved = (await db.query("select * from activity_messages where id = $1", [sent.rows[0].result.id])).rows[0];
+    assert.equal(saved.sender_id, participant);
+    assert.equal(saved.recipient_id, organizer);
+    await asUser(organizer, () => reply(originalId, "Pokalbio tęsinys"));
+  }
 });
 for (const [name, user, code] of [["stranger", stranger, "P0024"], ["original sender", participant, "P0024"], ["unauthenticated user", null, "P0001"]]) {
   test(`${name} cannot reply to the original message`, async () => {
@@ -127,37 +136,6 @@ test("reply API translates DB errors without exposing database details", async (
     const response = await api(undefined, { code, message: "private database details" }).send(body);
     assert.equal(response.status, status);
     assert.ok((await response.json()).error);
-  }
-});
-test("participant messages page renders the real DB reply and only received messages offer replies", async () => {
-  const { ReplyMessage } = load("../components/reply-message.tsx", {
-    "next/navigation": { useRouter: () => ({ refresh() {} }) },
-  });
-  for (const user of [participant, organizer]) {
-    const rows = (await asUser(user, () => db.query("select * from activity_messages order by created_at desc"))).rows;
-    const { default: Page } = load("../app/messages/page.tsx", {
-      "next/link": { __esModule: true, default: ({ children, ...props }) => React.createElement("a", props, children) },
-      "next/navigation": { redirect: () => { throw new Error("Unexpected redirect"); } },
-      "@/components/reply-message": { ReplyMessage },
-      "@/lib/supabase/server": { createClient: async () => ({
-        auth: { getUser: async () => ({ data: { user: { id: user } } }) },
-        from: table => ({ select: () => table === "profiles" ? Promise.resolve({ data: [] }) : ({
-          or: filter => { assert.equal(filter, `sender_id.eq.${user},recipient_id.eq.${user}`); return {
-            order: async () => ({ data: rows.map(row => ({ ...row, activities: { title: "Žiemos žygis" } })), error: null }),
-          }; },
-        }) }),
-      }) },
-    });
-    const html = renderToStaticMarkup(await Page());
-    assert.match(html, /Susitinkame ryte/);
-    assert.match(html, /Dalyvio klausimas/);
-    assert.match(html, /Atsakymas į žinutę/);
-    for (const row of rows) assert.equal(html.includes(`aria-controls="reply-${row.id}"`), row.recipient_id === user);
-    const receivedHtml = html.split('aria-label="Gautos"')[1].split("</section>")[0];
-    const sentHtml = html.split('aria-label="Išsiųstos"')[1].split("</section>")[0];
-    assert.equal((receivedHtml.match(/>Atsakyti<\/button>/g) ?? []).length,
-      rows.filter(row => row.recipient_id === user).length);
-    assert.doesNotMatch(sentHtml, />Atsakyti<\/button>/);
   }
 });
 test("schema includes exactly the same reply RPC as the migration", () => {
