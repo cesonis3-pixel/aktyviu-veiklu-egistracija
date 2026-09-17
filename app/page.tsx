@@ -22,7 +22,7 @@ export default async function Home() {
         </div>
         <div className="activity-grid">
           {activities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} currentUserId={user?.id ?? null} />
+            <ActivityCard key={activity.id} activity={activity} currentUserId={user?.id ?? null} signedIn={Boolean(user)} />
           ))}
         </div>
         <p className="activity-note">

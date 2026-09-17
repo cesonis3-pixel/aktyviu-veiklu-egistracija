@@ -4,7 +4,7 @@ import type { Activity } from "@/lib/activity";
 import { ActivityCard } from "./activity-card";
 import { Icon } from "./icon";
 
-export function ActivitiesList({ activities, currentUserId }: { activities: Activity[]; currentUserId?: string | null }) {
+export function ActivitiesList({ activities, currentUserId, signedIn }: { activities: Activity[]; currentUserId?: string | null; signedIn: boolean }) {
   const [query, setQuery] = useState("");
   const filter = query.trim().toLocaleLowerCase("lt");
   function search(event: FormEvent<HTMLFormElement>) {
@@ -44,7 +44,7 @@ export function ActivitiesList({ activities, currentUserId }: { activities: Acti
       {filtered.length ? (
         <div className="activity-grid">
           {filtered.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} currentUserId={currentUserId} />
+            <ActivityCard key={activity.id} activity={activity} currentUserId={currentUserId} signedIn={signedIn} />
           ))}
         </div>
       ) : (

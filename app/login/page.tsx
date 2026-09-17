@@ -3,9 +3,10 @@ import { AuthForm } from "@/components/auth-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
+  const returnTo = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
   const confirmationMessage =
     error === "confirmation_browser"
       ? "Patvirtinimo nuorodą atidarykite toje pačioje naršyklėje, kurioje registravotės. Jei el. paštas jau patvirtintas, prisijunkite slaptažodžiu."
@@ -21,7 +22,7 @@ export default async function LoginPage({
           {confirmationMessage}
         </p>
       )}
-      <AuthForm mode="login" />
+      <AuthForm mode="login" returnTo={returnTo} />
     </main>
   );
 }

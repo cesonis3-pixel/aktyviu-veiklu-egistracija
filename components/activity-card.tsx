@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Activity } from "@/lib/activity";
 import { Icon } from "./icon";
 
-export function ActivityCard({ activity, currentUserId }: { activity: Activity; currentUserId?: string | null }) {
+export function ActivityCard({ activity, currentUserId, signedIn = false }: { activity: Activity; currentUserId?: string | null; signedIn?: boolean }) {
   const isReserved = activity.isReserved;
   const available = activity.available;
   const cancelled = activity.status === "cancelled";
@@ -67,9 +67,11 @@ export function ActivityCard({ activity, currentUserId }: { activity: Activity; 
               Mano vieta
             </Link>
           ) : available > 0 ? (
-            <Link className="button" href={`${href}#reservation`}>
-              Registruotis
-            </Link>
+            signedIn ? (
+              <Link className="button" href={`${href}#reservation`}>Registruotis</Link>
+            ) : (
+              <Link className="button" href={`/login?next=${encodeURIComponent(href)}`}>Prisijungti ir rezervuoti</Link>
+            )
           ) : (
             <button disabled type="button">
               Pilna

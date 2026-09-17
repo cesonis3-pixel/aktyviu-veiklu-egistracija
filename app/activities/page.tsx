@@ -13,7 +13,7 @@ export default async function ActivitiesPage() {
         <h1>Visos veiklos</h1>
         <p>Atrask savo kitą žiemos nuotykį.</p>
       </div>
-      <ActivitiesList activities={activities} currentUserId={user?.id ?? null} />
+      <ActivitiesList activities={activities} currentUserId={user?.id ?? null} signedIn={Boolean(user)} />
     </main>
   );
 }
