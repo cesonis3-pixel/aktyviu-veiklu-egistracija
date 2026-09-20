@@ -79,7 +79,7 @@ export function ActivityForm({
         <label htmlFor="location">Vieta</label>
         <input id="location" name="location" required maxLength={200} defaultValue={activity?.location ?? ""} disabled={pending} />
 
-        <label htmlFor="startsAt">Data ir laikas</label>
+        <label htmlFor="startsAt">Data ir laikas (Lietuvos laiku)</label>
         <input id="startsAt" name="startsAt" type="datetime-local" required defaultValue={activity?.startsAt ?? ""} disabled={pending} />
 
         <label htmlFor="capacity">Vietų skaičius</label>

@@ -75,9 +75,10 @@ npm.cmd run build
 
 ## Vieša versija
 
-Projektas naudoja esama Vercel projekta. Konkreti vieša Vercel nuoroda siame
-GitHub repo ir jo konfigūracijoje neirašyta. Ja rasite esamo Vercel projekto
-dashboard'e prie **Domains**. Naujo Vercel projekto kurti nereikia.
+Vieša svetainė: https://aktyviu-veiklu-egistracija.vercel.app
+
+Diegiant naudokite esamą Vercel projektą, produkcijos šaką `main` ir tą patį
+Supabase projektą. Šis auditas nekeičia Vercel nustatymų ir nediegia kodo.
 
 ## Projekto struktura
 

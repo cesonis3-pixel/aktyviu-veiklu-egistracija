@@ -79,18 +79,3 @@ GRANT EXECUTE ON FUNCTION public.reserve_activity(uuid) TO authenticated;
 REVOKE EXECUTE ON FUNCTION public.cancel_reservation(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.cancel_reservation(uuid) TO authenticated;
 
--- Optional test activity: creates it only when the named activity does not exist.
--- Replace the email if the seeded organizer account is different.
-INSERT INTO public.activities (creator_id, title, description, location, starts_at, capacity, status)
-SELECT u.id,
-       'Vienos vietos testinė veikla',
-       'Naudokite dviejų vartotojų paskutinei vietai testuoti.',
-       'Vilnius',
-       now() + interval '14 days',
-       1,
-       'active'
-FROM auth.users u
-WHERE u.email = 'jurgituke1@gmail.com'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.activities WHERE title = 'Vienos vietos testinė veikla'
-  );

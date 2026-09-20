@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { parseActivityTime } from "@/lib/activity-time";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const startsAtDate = new Date(startsAt);
+  const startsAtDate = parseActivityTime(startsAt);
   if (Number.isNaN(startsAtDate.getTime()) || startsAtDate <= new Date()) {
     return NextResponse.json(
       { error: "Veiklos data ir laikas turi būti ateityje." },

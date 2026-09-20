@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ActivityForm } from "@/components/activity-form";
 import { createClient } from "@/lib/supabase/server";
+import { toVilniusInput } from "@/lib/activity-time";
 
 export default async function EditActivityPage({
   params,
@@ -33,7 +34,7 @@ export default async function EditActivityPage({
           title: activity.title,
           description: activity.description ?? "",
           location: activity.location,
-          startsAt: new Date(activity.starts_at).toISOString().slice(0, 16),
+          startsAt: toVilniusInput(activity.starts_at),
           capacity: activity.capacity,
           organizer_name: activity.organizer_name ?? "",
         }}

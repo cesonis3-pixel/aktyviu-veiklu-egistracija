@@ -55,8 +55,8 @@ export function ActivityCard({ activity, currentUserId, signedIn = false }: { ac
           <Link className="button button-outline" href={href}>
             Peržiūrėti
           </Link>
-          {!isOwner && <Link className="button button-outline" href={`${href}#message`}>
-            Parašyti organizatoriui
+          {!isOwner && <Link className="button button-outline" href={signedIn ? `${href}#message` : `/login?next=${encodeURIComponent(`${href}#message`)}`}>
+            {signedIn ? "Parašyti organizatoriui" : "Prisijunkite, kad parašytumėte organizatoriui"}
           </Link>}
           {isOwner ? (
             <span className="activity-note">Tai tavo sukurta veikla</span>

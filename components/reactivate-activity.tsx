@@ -3,8 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export function ReactivateActivity({ activityId, cancelled, isOwner }: {
-  activityId: string; cancelled: boolean; isOwner: boolean;
+export function ReactivateActivity({ activityId, cancelled, isOwner, canReactivate = true }: {
+  activityId: string; cancelled: boolean; isOwner: boolean; canReactivate?: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -38,6 +38,7 @@ export function ReactivateActivity({ activityId, cancelled, isOwner }: {
   }
 
   if (!isOwner) return null;
+  if (cancelled && !canReactivate) return <p className="activity-note">Prieš aktyvuodami pakeiskite veiklos datą į būsimą.</p>;
   return (
     <>
       {notice && <p role="status" className="reservation-notice">{notice}</p>}

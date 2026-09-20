@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 type IconName =
   | "mountain"
   | "calendar"
@@ -98,7 +100,7 @@ export function Icon({
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {paths[name]}
+      <Fragment key={name}>{paths[name]}</Fragment>
     </svg>
   );
 }

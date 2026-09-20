@@ -6,7 +6,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const { error, next } = await searchParams;
-  const returnTo = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  const returnTo = next?.startsWith("/") && !next.startsWith("//") && !/[\\\u0000-\u0020]/.test(next) ? next : undefined;
   const confirmationMessage =
     error === "confirmation_browser"
       ? "Patvirtinimo nuorodą atidarykite toje pačioje naršyklėje, kurioje registravotės. Jei el. paštas jau patvirtintas, prisijunkite slaptažodžiu."

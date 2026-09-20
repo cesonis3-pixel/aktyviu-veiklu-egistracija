@@ -81,7 +81,7 @@ export function MyActivities({ activities, initialNotice = "" }: { activities: A
         {activities.filter(activity => !deletedIds.includes(activity.id)).map((activity) => (
           <div key={activity.id}>
             <ActivityCard activity={activity} />
-            <ReactivateActivity activityId={activity.id} cancelled={activity.status === "cancelled"} isOwner />
+            <ReactivateActivity activityId={activity.id} cancelled={activity.status === "cancelled"} isOwner canReactivate={activity.canReactivate} />
             {activity.status === "cancelled" ? (
               <p className="activity-note">Veikla atšaukta</p>
             ) : null}
@@ -121,7 +121,7 @@ export function MyActivities({ activities, initialNotice = "" }: { activities: A
             {deletingId === activity.id ? (
               <div className="activity-confirmation" role="alertdialog" aria-labelledby={`delete-title-${activity.id}`}>
                 <h2 id={`delete-title-${activity.id}`}>Ar tikrai norite ištrinti šią veiklą?</h2>
-                <p>Ištrynus veiklą bus pašalintos visos jos rezervacijos. Šio veiksmo atšaukti negalima.</p>
+                <p>Jei yra aktyvių rezervacijų, veiklą galima tik atšaukti. Trynimo atšaukti negalima. Žinutės išliks.</p>
                 <div className="confirmation-actions">
                   <button type="button" disabled={Boolean(pendingId)} onClick={() => remove(activity.id)}>{pendingId === activity.id ? "Trinama..." : "Ištrinti"}</button>
                   <button type="button" className="button button-outline" disabled={Boolean(pendingId)} onClick={() => setDeletingId(null)}>Atšaukti</button>

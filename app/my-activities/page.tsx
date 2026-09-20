@@ -14,35 +14,12 @@ export default async function MyActivitiesPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data, error } = user
-    ? await supabase
-        .from("activities")
-        .select(
-          "id, title, description, location, starts_at, capacity, status, creator_id",
-        )
-        .eq("creator_id", user.id)
-        .order("starts_at", { ascending: true })
-    : { data: null, error: null };
-
-  if (error) {
-    console.error(
-      "[my-activities] Supabase activities query failed",
-      JSON.stringify({
-        table: "activities",
-        select: "id, title, description, location, starts_at, capacity, status, creator_id",
-        filter: { column: "creator_id", value: user?.id },
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      }),
-    );
+  let activities: Awaited<ReturnType<typeof getActivities>> = [];
+  let error = false;
+  if (user) {
+    try { activities = (await getActivities()).filter(activity => activity.creator_id === user.id); }
+    catch { error = true; }
   }
-
-  const ownedIds = new Set((data ?? []).map(row => row.id));
-  const activities = user && !error
-    ? (await getActivities()).filter(activity => ownedIds.has(activity.id))
-    : [];
 
   return (
     <main id="main-content" className="container page-section">

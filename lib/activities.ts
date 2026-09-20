@@ -18,21 +18,15 @@ type ActivityImage = { category: string; image: string; imageAlt: string };
 
 const fallbackImage: ActivityImage = {
   category: "Aktyvus laisvalaikis",
-  image: "/images/winter-adventure.jpg",
+  image: "/images/winter-forest.jpg",
   imageAlt: "Žiemos aktyvaus laisvalaikio veikla",
 };
 
 // Vienintelė vieta, kur veiklos pavadinimas susiejamas su esamu paveikslėliu.
 export function getActivityImage(title: string): ActivityImage {
   const value = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  if (/slidin|ski/.test(value)) return {
-    category: "Slidinėjimas", image: "/images/ski-tour.jpg", imageAlt: "Slidininkų grupė snieguotame miške",
-  };
   if (/keturra|keturic|\batv\b/.test(value)) return {
     category: "Keturračiai", image: "/images/winter-atv.png", imageAlt: "Keturračiai su vairuotojais snieguotame miško take",
-  };
-  if (/treniruot|fitness|sport/.test(value)) return {
-    category: "Lauko treniruotės", image: "/images/winter-fitness.png", imageAlt: "Dalyviai atlieka mankštos pratimus snieguotame parke",
   };
   if (/snieglent|snieglenc|snowboard/.test(value)) return {
     category: "Snieglentės", image: "/images/winter-snowboard.png", imageAlt: "Snieglentininkas leidžiasi snieguotu šlaitu",
@@ -43,12 +37,21 @@ export function getActivityImage(title: string): ActivityImage {
   if (/ciuoz|skating/.test(value)) return {
     category: "Čiuožimas", image: "/images/winter-skating.png", imageAlt: "Dalyviai su pačiūžomis žiemos lauko čiuožykloje",
   };
+  if (/slidin|silidin|\bski(?:ing)?\b/.test(value)) return {
+    category: "Slidinėjimas", image: "/images/winter-adventure.jpg", imageAlt: "Slidininkai su slidėmis snieguotame kalnų šlaite",
+  };
+  if (/zyg|zygi|hiking|hike|pasivaiksc/.test(value)) return {
+    category: "Žiemos žygiai", image: "/images/ski-tour.jpg", imageAlt: "Žygeiviai su sniegbačiais eina snieguotu miško taku",
+  };
+  if (/treniruot|fitness|sport/.test(value)) return {
+    category: "Lauko treniruotės", image: "/images/winter-fitness.png", imageAlt: "Dalyviai atlieka mankštos pratimus snieguotame parke",
+  };
   return fallbackImage;
 }
 
 export function toActivity(row: ActivityRow): Activity {
   const date = new Date(row.starts_at);
-  const organizerName = row.organizer_name?.trim() || "Organizatorius";
+  const organizerName = row.organizer_name?.trim() || "Veiklos organizatorius";
   const presentation = getActivityImage(row.title);
   return {
     id: row.id,
@@ -69,30 +72,43 @@ export function toActivity(row: ActivityRow): Activity {
     ...presentation,
     organizer: organizerName,
     organizer_name: organizerName,
+    canReactivate: row.status === "cancelled" && date.getTime() > Date.now(),
   };
 }
 
 export async function getActivities() {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_public_activities");
-  if (error) throw error;
+  const data: ActivityRow[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data: page, error } = await supabase.rpc("get_public_activities")
+      .order("starts_at").order("id").range(offset, offset + 499);
+    if (error) throw error;
+    data.push(...(page ?? []));
+    if (!page || page.length < 500) break;
+  }
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: reservations, error: reservationError }, { data: ownedActivities, error: ownedActivitiesError }] = user
-    ? await Promise.all([
-      supabase.from("reservations").select("activity_id")
-        .eq("user_id", user.id).eq("status", "active"),
-      // Savininkas nustatomas pagal auth vartotojo ID ir creator_id, niekada pagal organizer_name.
-      supabase.from("activities").select("id, creator_id").eq("creator_id", user.id),
-    ])
-    : [{ data: [], error: null }, { data: [], error: null }];
-  if (reservationError) throw reservationError;
-  if (ownedActivitiesError) throw ownedActivitiesError;
-  const reserved = new Set((reservations ?? []).map(row => row.activity_id));
-  const ownedById = new Map((ownedActivities ?? []).map(row => [row.id, row.creator_id]));
-  const rows = data as ActivityRow[];
-  return rows.map(row => ({
-    ...toActivity({ ...row, creator_id: ownedById.get(row.id) ?? row.creator_id }),
+  const reserved = new Set<string>();
+  if (user) {
+    for (let offset = 0; ; offset += 500) {
+      const { data: page, error } = await supabase.from("reservations").select("activity_id")
+        .eq("user_id", user.id).eq("status", "active").order("id").range(offset, offset + 499);
+      if (error) throw error;
+      for (const row of page ?? []) reserved.add(row.activity_id);
+      if (!page || page.length < 500) break;
+    }
+  }
+  return data.map(row => ({
+    ...toActivity(row),
     isReserved: reserved.has(row.id),
-    isOwner: Boolean(user && ownedById.has(row.id)),
+    isOwner: Boolean(user && row.creator_id === user.id),
   }));
+}
+
+export async function getActivity(id: string) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  const supabase = await createClient();
+  // Filter inside the RPC, before PostgREST's row limit; status is never a filter.
+  const { data, error } = await supabase.rpc("get_public_activity", { p_activity_id: id }).maybeSingle();
+  if (error) throw error;
+  return data ? toActivity(data as ActivityRow) : null;
 }

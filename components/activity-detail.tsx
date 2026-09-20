@@ -200,7 +200,7 @@ export function ActivityDetail({
             <div><span className="muted">Organizatorius</span><h2>{activity.organizer_name?.trim() || "Organizatorius"}</h2><p>Žiemos nuotykių entuziastas</p></div>
           </aside>
         </div>
-        <ReactivateActivity activityId={activity.id} cancelled={cancelled} isOwner={signedIn && isOwner} />
+        <ReactivateActivity activityId={activity.id} cancelled={cancelled} isOwner={signedIn && isOwner} canReactivate={activity.canReactivate} />
         {isOwner ? (
           <section className="activity-management" aria-labelledby="activity-management-title">
             <h2 id="activity-management-title">Veiklos valdymas</h2>
@@ -216,7 +216,7 @@ export function ActivityDetail({
               ) : (
                 <div className="activity-confirmation" role="alertdialog" aria-labelledby="detail-delete-title">
                   <h3 id="detail-delete-title">Ar tikrai norite ištrinti šią veiklą?</h3>
-                  <p>Šio veiksmo atšaukti negalima. Kartu bus pašalintos visos šios veiklos rezervacijos.</p>
+                  <p>Šio veiksmo atšaukti negalima. Jei yra aktyvių rezervacijų, veiklą galima tik atšaukti. Žinutės išliks.</p>
                   <div className="confirmation-actions">
                     <button type="button" onClick={deleteActivity} disabled={deleting}>{deleting ? "Trinama..." : "Patvirtinti trynimą"}</button>
                     <button type="button" className="button button-outline" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Atšaukti</button>

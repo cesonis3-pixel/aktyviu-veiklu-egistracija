@@ -3,6 +3,7 @@ export type Activity = {
   creator_id?: string;
   isOwner?: boolean;
   isReserved?: boolean;
+  canReactivate?: boolean;
   title: string;
   category: string;
   date: string;

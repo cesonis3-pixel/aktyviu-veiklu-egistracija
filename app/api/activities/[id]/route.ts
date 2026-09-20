@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { parseActivityTime } from "@/lib/activity-time";
 
 export async function PATCH(
   request: Request,
@@ -23,7 +24,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Užpildykite pavadinimą, vietą, datą, laiką, organizatoriaus pavadinimą ir teigiamą vietų skaičių." }, { status: 400 });
     }
 
-    const startsAtDate = new Date(startsAt);
+    const startsAtDate = parseActivityTime(startsAt);
     if (Number.isNaN(startsAtDate.getTime()) || startsAtDate <= new Date()) {
       return NextResponse.json({ error: "Veiklos data ir laikas turi būti ateityje." }, { status: 400 });
     }
@@ -60,6 +61,9 @@ export async function PATCH(
       .eq("creator_id", user.id)
       .select("id");
 
+    if (error?.code === "P0012") {
+      return NextResponse.json({ error: "Vietų skaičius negali būti mažesnis už aktyvių rezervacijų skaičių." }, { status: 409 });
+    }
     if (error) throw error;
     if (!data || data.length === 0) {
       return NextResponse.json({ error: "Veikla nerasta." }, { status: 404 });

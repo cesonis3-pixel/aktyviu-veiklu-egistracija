@@ -10,6 +10,7 @@ function load(path, mocks) {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText;
   new Function("require", "module", "exports", source)(name => {
+    if (name === "@/lib/activity-time") return load("../lib/activity-time.ts", {});
     assert.ok(name in mocks, name);
     return mocks[name];
   }, compiledModule, compiledModule.exports);
@@ -61,8 +62,12 @@ test("active reservations and DB owner recheck failures reach the user", async (
 test("winter categories match titles without changing DB identity or description", () => {
   const { toActivity } = load("../lib/activities.ts", { "./supabase/server": {} });
   for (const [title, category, filename] of [
-    ["Slidinėjimo treniruotė", "Slidinėjimas", "ski-tour.jpg"],
-    ["Slidinėjimas", "Slidinėjimas", "ski-tour.jpg"],
+    ["Slidinėjimo treniruotė", "Slidinėjimas", "winter-adventure.jpg"],
+    ["Slidinėjimas", "Slidinėjimas", "winter-adventure.jpg"],
+    ["Silidinėjimas", "Slidinėjimas", "winter-adventure.jpg"],
+    ["Žiemos žygis", "Žiemos žygiai", "ski-tour.jpg"],
+    ["Žygis Vingio parke", "Žiemos žygiai", "ski-tour.jpg"],
+    ["Snieglentės treniruotė", "Snieglentės", "winter-snowboard.png"],
     ["Išvyka su keturračiais", "Keturračiai", "winter-atv.png"],
     ["Keturičiai sniege", "Keturračiai", "winter-atv.png"],
     ["Keturračiai sniege", "Keturračiai", "winter-atv.png"],
@@ -73,7 +78,7 @@ test("winter categories match titles without changing DB identity or description
     ["Čiuožimas", "Čiuožimas", "winter-skating.png"],
     ["Rogutės", "Rogutės", "winter-sledding.png"],
     ["Sled adventure", "Rogutės", "winter-sledding.png"],
-    ["Slidinėjimas Druskininkuose", "Slidinėjimas", "ski-tour.jpg"],
+    ["Slidinėjimas Druskininkuose", "Slidinėjimas", "winter-adventure.jpg"],
   ]) {
     const result = toActivity({ id, title, description: "Organizatoriaus aprašymas", starts_at: "2027-01-23T11:00:00+02:00", capacity: 5, available: 3, status: "active", location: "Trakai" });
     assert.equal(result.id, id);
@@ -84,19 +89,19 @@ test("winter categories match titles without changing DB identity or description
     assert.ok(existsSync(new URL(`../public/images/${filename}`, import.meta.url)));
   }
 });
-test("latest deletion migration permits owner deletion with reservations and retains owner guard", () => {
+test("historical deletion migration also blocks active reservations and retains owner guard", () => {
   const migration = readFileSync(new URL("../supabase/migrations/20260917_delete_activity_with_reservations.sql", import.meta.url), "utf8");
   assert.ok(migration.includes("activity_row.creator_id <> current_user_id"));
   assert.ok(migration.includes("delete from public.activities"));
-  assert.ok(migration.includes("ON DELETE CASCADE"));
-  assert.ok(!migration.includes("P0013"));
+  assert.ok(migration.includes("status = 'active'"));
+  assert.ok(migration.includes("P0013"));
 });
 
 test("unknown activity title uses the neutral title-based fallback image", () => {
   const { getActivityImage } = load("../lib/activities.ts", { "./supabase/server": {} });
   assert.deepEqual(getActivityImage("Nežinoma veikla"), {
     category: "Aktyvus laisvalaikis",
-    image: "/images/winter-adventure.jpg",
+    image: "/images/winter-forest.jpg",
     imageAlt: "Žiemos aktyvaus laisvalaikio veikla",
   });
 });

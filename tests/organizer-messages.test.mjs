@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import React from "react";
+import * as jsx from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { NextResponse } from "next/server.js";
@@ -279,7 +280,7 @@ test("public activity uses organizer_name when available", () => {
 test("activity detail shows owner management and hides messaging from owner", () => {
   const { ActivityDetail } = load("../components/activity-detail.tsx", {
     react: React,
-    "react/jsx-runtime": { jsx: React.createElement, jsxs: React.createElement, Fragment: React.Fragment },
+    "react/jsx-runtime": jsx,
     "next/link": { __esModule: true, default: ({ children, ...props }) => React.createElement("a", props, children) },
     "next/image": { __esModule: true, default: () => null },
     "next/navigation": { useRouter: () => ({ refresh() {}, push() {} }) },
