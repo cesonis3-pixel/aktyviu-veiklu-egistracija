@@ -108,7 +108,13 @@ export async function getActivity(id: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
   const supabase = await createClient();
   // Filter inside the RPC, before PostgREST's row limit; status is never a filter.
-  const { data, error } = await supabase.rpc("get_public_activity", { p_activity_id: id }).maybeSingle();
-  if (error) throw error;
-  return data ? toActivity(data as ActivityRow) : null;
+  const detail = await supabase.rpc("get_public_activity", { p_activity_id: id }).maybeSingle();
+  if (!detail.error) return detail.data ? toActivity(detail.data as ActivityRow) : null;
+
+  // Keep deployments usable while the additive RPC migration is waiting to be
+  // applied. Other database errors must remain visible instead of becoming 404s.
+  if (detail.error.code !== "PGRST202" && detail.error.code !== "42883") throw detail.error;
+  const fallback = await supabase.rpc("get_public_activities").eq("id", id).maybeSingle();
+  if (fallback.error) throw fallback.error;
+  return fallback.data ? toActivity(fallback.data as ActivityRow) : null;
 }

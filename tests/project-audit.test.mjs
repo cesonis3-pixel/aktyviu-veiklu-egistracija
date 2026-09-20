@@ -154,6 +154,22 @@ test("detail loader filters UUID inside RPC and distinguishes query failure from
   assert.equal(await getActivity("invalid"), null);
   result = { data: null, error: new Error("DB unavailable") }; await assert.rejects(getActivity(A), /DB unavailable/);
 });
+test("detail loader remains available while the additive detail RPC migration is pending", async () => {
+  const row = { id: A, creator_id: B, title: "Snieglentė", starts_at: "2100-01-01T12:00:00Z", status: "cancelled", location: "Vilnius", capacity: 2, available: 1, organizer_name: "Klubas" };
+  const calls = [];
+  const { getActivity } = load("../lib/activities.ts", { "./supabase/server": { createClient: async () => ({
+    rpc: (name, args) => {
+      calls.push([name, args]);
+      if (name === "get_public_activity") return { maybeSingle: async () => ({ data: null, error: { code: "PGRST202" } }) };
+      return { eq: (column, value) => {
+        calls.push(["eq", column, value]);
+        return { maybeSingle: async () => ({ data: row, error: null }) };
+      } };
+    },
+  }) } });
+  assert.equal((await getActivity(A)).status, "cancelled");
+  assert.deepEqual(calls, [["get_public_activity", { p_activity_id: A }], ["get_public_activities", undefined], ["eq", "id", A]]);
+});
 test("actual detail route renders active/cancelled list UUIDs including uppercase and 404s only missing", async () => {
   let status = "active";
   const { default: Page } = load("../app/activities/[id]/page.tsx", {
